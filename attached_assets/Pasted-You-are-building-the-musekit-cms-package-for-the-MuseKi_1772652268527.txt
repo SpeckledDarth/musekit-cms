@@ -1,0 +1,90 @@
+You are building the @musekit/cms package for the MuseKit SaaS platform.
+
+This is a standalone npm package for content management: blog, landing pages,
+legal pages, and marketing tools.
+
+## Tech Stack Rules
+- Next.js 14.2.18 (do NOT use 15+ or 16+ features)
+- React 18.3.1
+- Tailwind CSS v3.4.x (do NOT upgrade to v4)
+- TypeScript strict mode
+
+## What to Build
+
+### Blog/Changelog System (src/blog/)
+- BlogList — public page listing published posts
+- BlogPost — individual post page with markdown rendering
+- BlogEditor — admin markdown editor with live preview
+- BlogAdmin — admin CRUD interface (list, create, edit, delete, publish/draft)
+- Category/tag system for organizing posts
+
+### 14 Landing Page Sections (src/landing/)
+Each section is a standalone React component that reads its config from the database:
+
+1. HeroSection — 6 styles (full-width, split, video, pattern, floating mockup, photo collage)
+2. LogoMarquee — scrolling partner/client logos
+3. AnimatedCounters — key metrics with counting animation on scroll
+4. FeatureCards — icons and descriptions in a responsive grid
+5. TestimonialCarousel — customer stories with navigation
+6. ProcessSteps — numbered how-it-works sequence
+7. FAQSection — expandable question/answer accordion
+8. FounderLetter — portrait image, letter text, signature
+9. ComparisonBars — animated bar charts comparing before/after
+10. ScreenshotShowcase — product screenshots with layered backgrounds
+11. BottomHeroCTA — closing call-to-action section
+12. ImageCollage — fan-style overlapping images with hover animation
+13. ImageTextBlocks — alternating image + text rows
+14. FeatureSubPage — template for /features/[slug] dynamic pages
+
+- LandingPageBuilder — assembles sections in order from database config
+- Each section respects: enabled/disabled toggle, sort order, per-section background color
+
+### 9 Legal Pages (src/legal/)
+- TermsOfService, PrivacyPolicy, CookiePolicy, AcceptableUse, Accessibility,
+  DataHandling, DMCA, AIDataUsage, SecurityPolicy
+- Dynamic variable replacement: {{appName}}, {{companyName}}, {{supportEmail}}, {{effectiveDate}}
+- All legal pages share a common layout with sidebar navigation
+
+### Marketing Tools (src/marketing/)
+- WaitlistForm — email collection form for pre-launch mode
+- WaitlistAdmin — admin view with CSV export
+- FeedbackWidget — floating widget with NPS rating (0-10 scale)
+- AnnouncementBar — top banner with admin controls (text, link, dismiss)
+- CookieConsentBanner — configurable cookie consent with accept/decline
+- SEOHead — component that generates meta tags, Open Graph, JSON-LD
+- Sitemap — auto-generated sitemap.xml
+- RobotsTxt — auto-generated robots.txt
+
+### Custom Pages (src/pages/)
+- CustomPage — dynamic page renderer
+- CustomPageEditor — admin page builder
+
+### Dependencies
+- Install: @musekit/shared (from github:SpeckledDarth/musekit-shared)
+- Install: @musekit/database (from github:SpeckledDarth/musekit-database)
+- Install: @musekit/design-system (from github:SpeckledDarth/musekit-design-system)
+- Install: react-markdown, remark-gfm (for blog markdown rendering)
+- Install: lucide-react (for icons)
+
+### Supabase Tables Used
+- content_posts (read/write — blog CRUD)
+- brand_settings (read — app name, colors for branding)
+- feature_toggles (read — which sections are enabled)
+- waitlist (read/write — waitlist entries)
+- feedback (read/write — feedback submissions)
+
+### Environment Secrets Needed
+- NEXT_PUBLIC_SUPABASE_URL
+- NEXT_PUBLIC_SUPABASE_ANON_KEY
+- SUPABASE_SERVICE_ROLE_KEY
+
+### Reference Code
+Original: github.com/SpeckledDarth/master-saas-muse
+Look in: src/app/blog/, src/app/(marketing)/, src/components/landing/, src/components/marketing/, src/app/(legal)/, src/app/features/
+
+### Rules
+- All UI uses @musekit/design-system components
+- Every landing section must support dark mode
+- Legal pages must use dynamic variable replacement — never hardcode app name
+- Export everything from src/index.ts
+- Create replit.md and MODULE.md

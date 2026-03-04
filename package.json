@@ -1,0 +1,37 @@
+{
+  "name": "@musekit/cms",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 5000 -H 0.0.0.0",
+    "build": "next build",
+    "start": "next start -p 5000 -H 0.0.0.0"
+  },
+  "dependencies": {
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "next": "14.2.18",
+    "@musekit/shared": "github:SpeckledDarth/musekit-shared",
+    "@musekit/database": "github:SpeckledDarth/musekit-database",
+    "@musekit/design-system": "github:SpeckledDarth/musekit-design-system",
+    "react-markdown": "^9.0.1",
+    "remark-gfm": "^4.0.0",
+    "lucide-react": "^0.453.0",
+    "@supabase/supabase-js": "^2.98.0",
+    "@supabase/ssr": "^0.5.2",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "tailwind-merge": "^2.6.1"
+  },
+  "devDependencies": {
+    "typescript": "^5.6.3",
+    "@types/node": "^20",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.17",
+    "@tailwindcss/typography": "^0.5.15",
+    "tailwindcss-animate": "^1.0.7",
+    "autoprefixer": "^10.4.20"
+  }
+}
