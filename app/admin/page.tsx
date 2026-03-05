@@ -5,12 +5,14 @@ import { BlogAdmin } from "@/src/blog";
 import { ChangelogAdmin } from "@/src/blog";
 import { WaitlistAdmin } from "@/src/marketing";
 import { CustomPageEditor } from "@/src/custom-pages";
+import { MediaLibrary } from "@/src/media";
 import { cn } from "@/src/lib/utils";
-import { FileText, Users, Layout, ScrollText } from "lucide-react";
+import { FileText, Users, Layout, ScrollText, ImageIcon } from "lucide-react";
 
 const tabs = [
   { id: "blog", label: "Blog", icon: FileText },
   { id: "changelog", label: "Changelog", icon: ScrollText },
+  { id: "media", label: "Media", icon: ImageIcon },
   { id: "waitlist", label: "Waitlist", icon: Users },
   { id: "pages", label: "Pages", icon: Layout },
 ] as const;
@@ -47,6 +49,7 @@ export default function AdminPage() {
 
       {activeTab === "blog" && <BlogAdmin />}
       {activeTab === "changelog" && <ChangelogAdmin />}
+      {activeTab === "media" && <MediaLibrary />}
       {activeTab === "waitlist" && <WaitlistAdmin />}
       {activeTab === "pages" && <CustomPageEditor />}
     </div>

@@ -1,9 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { cn } from "@/src/lib/utils";
+import { MediaPicker } from "@/src/media/MediaPicker";
+import { ImageIcon } from "lucide-react";
 
 interface BlogEditorProps {
   initialContent?: string;
@@ -13,6 +15,7 @@ interface BlogEditorProps {
     content: string;
   }) => void;
   saving?: boolean;
+  onTitleChange?: (title: string) => void;
 }
 
 export function BlogEditor({
@@ -20,13 +23,35 @@ export function BlogEditor({
   initialTitle = "",
   onSave,
   saving = false,
+  onTitleChange,
 }: BlogEditorProps) {
   const [title, setTitle] = useState(initialTitle);
   const [content, setContent] = useState(initialContent);
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
+  const [mediaPickerOpen, setMediaPickerOpen] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   function handleSave() {
     onSave({ title, content });
+  }
+
+  function handleInsertImage(url: string) {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const markdown = `![image](${url})`;
+      const newContent = content.slice(0, start) + markdown + content.slice(end);
+      setContent(newContent);
+      setTimeout(() => {
+        textarea.focus();
+        const newPos = start + markdown.length;
+        textarea.setSelectionRange(newPos, newPos);
+      }, 0);
+    } else {
+      setContent((prev) => prev + `\n![image](${url})`);
+    }
+    setMediaPickerOpen(false);
   }
 
   return (
@@ -34,13 +59,16 @@ export function BlogEditor({
       <input
         type="text"
         value={title}
-        onChange={(e) => setTitle(e.target.value)}
+        onChange={(e) => {
+          setTitle(e.target.value);
+          onTitleChange?.(e.target.value);
+        }}
         placeholder="Post title"
         className="w-full px-4 py-3 text-2xl font-bold bg-transparent border-b border-border focus:outline-none focus:border-primary"
       />
 
       <div className="border border-border rounded-lg overflow-hidden">
-        <div className="flex border-b border-border">
+        <div className="flex items-center border-b border-border">
           <button
             onClick={() => setActiveTab("write")}
             className={cn(
@@ -63,10 +91,21 @@ export function BlogEditor({
           >
             Preview
           </button>
+          <div className="ml-auto pr-2">
+            <button
+              onClick={() => setMediaPickerOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-muted rounded-md transition-colors"
+              title="Insert Image"
+            >
+              <ImageIcon className="w-3.5 h-3.5" />
+              Insert Image
+            </button>
+          </div>
         </div>
 
         {activeTab === "write" ? (
           <textarea
+            ref={textareaRef}
             value={content}
             onChange={(e) => setContent(e.target.value)}
             placeholder="Write your post content in Markdown..."
@@ -92,6 +131,12 @@ export function BlogEditor({
           {saving ? "Saving..." : "Save"}
         </button>
       </div>
+
+      <MediaPicker
+        open={mediaPickerOpen}
+        onClose={() => setMediaPickerOpen(false)}
+        onSelect={handleInsertImage}
+      />
     </div>
   );
 }

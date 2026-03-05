@@ -7,6 +7,7 @@ Content management system for the MuseKit SaaS platform. Built with Next.js 14.2
 - **Framework**: Next.js 14 App Router
 - **Port**: 5000 (dev and production)
 - **Database**: Supabase (external)
+- **Storage**: Supabase Storage (`media` bucket for uploaded images)
 - **Styling**: Tailwind CSS v3 with CSS custom properties for theming
 
 ## Database Tables
@@ -32,7 +33,8 @@ src/                    # Reusable CMS components
 ├── landing/            # 14 landing sections + LandingPageBuilder + default-config
 ├── legal/              # 9 legal pages with LegalPageLayout
 ├── marketing/          # WaitlistForm, FeedbackWidget, SEOHead, etc.
-├── custom-pages/       # CustomPage, CustomPageEditor
+├── custom-pages/       # CustomPage, CustomPageEditor (with metadata, search, sort, bulk)
+├── media/              # MediaLibrary, MediaPicker (Supabase Storage)
 ├── lib/                # Supabase client, utilities
 └── index.ts            # Barrel export
 ```

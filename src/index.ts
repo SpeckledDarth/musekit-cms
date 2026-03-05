@@ -36,5 +36,7 @@ export {
 
 export { CustomPage, CustomPageEditor } from "./custom-pages";
 
+export { MediaLibrary, MediaPicker } from "./media";
+
 export { cn, replaceVariables, formatDate, slugify } from "./lib/utils";
 export { getSupabaseClient, getSupabaseAdmin, getBrowserClient } from "./lib/supabase";
