@@ -1,0 +1,237 @@
+"use client";
+
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import { cn } from "../lib/utils";
+import { getBrowserClient } from "../lib/supabase";
+import { ScrollText } from "lucide-react";
+
+interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;
+  status: string;
+  author_id: string;
+  published_at: string | null;
+  created_at: string;
+  category?: string;
+  tags?: string[];
+  excerpt?: string;
+}
+
+type FilterType = "all" | "release" | "update" | "feature" | "fix";
+
+const filters: { label: string; value: FilterType }[] = [
+  { label: "All", value: "all" },
+  { label: "Releases", value: "release" },
+  { label: "Updates", value: "update" },
+  { label: "Features", value: "feature" },
+  { label: "Fixes", value: "fix" },
+];
+
+const tagColors: Record<string, string> = {
+  release: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  update: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  feature: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  fix: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+};
+
+const defaultBadge = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+
+function getTagBadge(post: Post): { label: string; className: string } {
+  const tags = post.tags || [];
+  for (const tag of ["release", "update", "feature", "fix"]) {
+    if (tags.includes(tag)) {
+      return { label: tag, className: tagColors[tag] };
+    }
+  }
+  if (post.category) {
+    const cat = post.category.toLowerCase();
+    if (cat.includes("release")) return { label: "release", className: tagColors.release };
+    if (cat.includes("update")) return { label: "update", className: tagColors.update };
+    if (cat.includes("feature")) return { label: "feature", className: tagColors.feature };
+    if (cat.includes("fix")) return { label: "fix", className: tagColors.fix };
+  }
+  return { label: post.category || "update", className: defaultBadge };
+}
+
+function groupByMonth(posts: Post[]): { label: string; posts: Post[] }[] {
+  const groups: Record<string, Post[]> = {};
+  for (const post of posts) {
+    const date = new Date(post.published_at || post.created_at);
+    const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, "0")}`;
+    const label = date.toLocaleDateString("en-US", { year: "numeric", month: "long" });
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(post);
+  }
+  return Object.entries(groups)
+    .sort(([a], [b]) => b.localeCompare(a))
+    .map(([, posts]) => ({
+      label: new Date(posts[0].published_at || posts[0].created_at).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+      }),
+      posts,
+    }));
+}
+
+function formatShortDate(dateStr: string): string {
+  return new Date(dateStr).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  });
+}
+
+export function ChangelogList() {
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState<FilterType>("all");
+
+  useEffect(() => {
+    async function fetchPosts() {
+      try {
+        const supabase = getBrowserClient();
+        const { data, error } = await supabase
+          .from("content_posts")
+          .select("*")
+          .eq("status", "published")
+          .order("published_at", { ascending: false });
+
+        if (error) throw error;
+
+        const changelogPosts = (data || []).filter((post: Post) => {
+          const cat = (post.category || "").toLowerCase();
+          const tags = post.tags || [];
+          const isChangelogCategory =
+            cat.includes("release") || cat.includes("product update") || cat.includes("changelog");
+          const hasChangelogTag = tags.some((t) =>
+            ["release", "update", "feature", "fix"].includes(t.toLowerCase())
+          );
+          return isChangelogCategory || hasChangelogTag;
+        });
+
+        setPosts(changelogPosts);
+      } catch (err) {
+        console.error("Failed to fetch changelog posts:", err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchPosts();
+  }, []);
+
+  const filteredPosts =
+    activeFilter === "all"
+      ? posts
+      : posts.filter((post) => {
+          const tags = (post.tags || []).map((t) => t.toLowerCase());
+          return tags.includes(activeFilter);
+        });
+
+  const grouped = groupByMonth(filteredPosts);
+
+  if (loading) {
+    return (
+      <div className="max-w-3xl mx-auto px-4 py-12">
+        <div className="h-8 bg-muted rounded w-48 mb-2 animate-pulse" />
+        <div className="h-4 bg-muted rounded w-72 mb-8 animate-pulse" />
+        <div className="flex gap-2 mb-10">
+          {[1, 2, 3, 4, 5].map((i) => (
+            <div key={i} className="h-8 w-20 bg-muted rounded-full animate-pulse" />
+          ))}
+        </div>
+        <div className="space-y-8">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="space-y-4">
+              <div className="h-5 bg-muted rounded w-36 animate-pulse" />
+              <div className="ml-8 space-y-4">
+                <div className="h-4 bg-muted rounded w-full animate-pulse" />
+                <div className="h-4 bg-muted rounded w-5/6 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="max-w-3xl mx-auto px-4 py-12">
+      <h1 className="text-4xl font-bold mb-2">Changelog</h1>
+      <p className="text-muted-foreground mb-8">Latest updates, improvements, and fixes</p>
+
+      <div className="flex gap-2 mb-10 flex-wrap">
+        {filters.map((filter) => (
+          <button
+            key={filter.value}
+            onClick={() => setActiveFilter(filter.value)}
+            className={cn(
+              "px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
+              activeFilter === filter.value
+                ? "bg-primary text-primary-foreground"
+                : "bg-muted text-muted-foreground hover:bg-muted/80"
+            )}
+          >
+            {filter.label}
+          </button>
+        ))}
+      </div>
+
+      {filteredPosts.length === 0 ? (
+        <div className="text-center py-16">
+          <ScrollText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <p className="text-muted-foreground">
+            No changelog entries yet. Check back soon for updates.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-12">
+          {grouped.map((group) => (
+            <div key={group.label}>
+              <h2 className="text-lg font-semibold text-muted-foreground mb-6">{group.label}</h2>
+              <div className="relative pl-8 border-l-2 border-border space-y-8">
+                {group.posts.map((post) => {
+                  const badge = getTagBadge(post);
+                  const summary =
+                    post.excerpt || post.content.slice(0, 150).replace(/[#*_`]/g, "").trim();
+                  return (
+                    <div key={post.id} className="relative">
+                      <div className="absolute -left-[calc(2rem+5px)] top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-background" />
+                      <div>
+                        <div className="flex items-center gap-3 mb-1">
+                          <span
+                            className={cn(
+                              "px-2 py-0.5 rounded-full text-xs font-medium capitalize",
+                              badge.className
+                            )}
+                          >
+                            {badge.label}
+                          </span>
+                          <span className="text-sm text-muted-foreground">
+                            {formatShortDate(post.published_at || post.created_at)}
+                          </span>
+                        </div>
+                        <Link
+                          href={`/blog/${post.slug}`}
+                          className="text-lg font-semibold hover:text-primary transition-colors"
+                        >
+                          {post.title}
+                        </Link>
+                        <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
+                          {summary}
+                          {post.content.length > 150 && "..."}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}

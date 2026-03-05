@@ -14,3 +14,4 @@ export { ImageTextBlocks } from "./ImageTextBlocks";
 export { FeatureSubPage } from "./FeatureSubPage";
 export { LandingPageBuilder } from "./LandingPageBuilder";
 export type { SectionConfig } from "./LandingPageBuilder";
+export { defaultLandingConfig, getLandingConfig } from "./default-config";

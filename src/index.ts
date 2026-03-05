@@ -1,4 +1,4 @@
-export { BlogList, BlogPost, BlogEditor, BlogAdmin } from "./blog";
+export { BlogList, BlogPost, BlogEditor, BlogAdmin, ChangelogList } from "./blog";
 
 export {
   HeroSection,
@@ -18,6 +18,7 @@ export {
   LandingPageBuilder,
 } from "./landing";
 export type { SectionConfig } from "./landing";
+export { defaultLandingConfig, getLandingConfig } from "./landing";
 
 export { LegalPageLayout, legalPages } from "./legal";
 export type { LegalPageSlug } from "./legal";

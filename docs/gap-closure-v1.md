@@ -4,7 +4,7 @@
 |----------------|------------------------------------------|
 | **Version**    | 1.0                                      |
 | **Date**       | March 5, 2026                            |
-| **Status**     | Draft — Awaiting Approval                |
+| **Status**     | Implemented                              |
 | **Package**    | @musekit/cms                             |
 | **Repository** | SpeckledDarth/musekit-cms                |
 
@@ -246,16 +246,16 @@ Existing files being edited (barrel exports in `index.ts` files) will keep their
 
 ## Acceptance Criteria
 
-- [ ] `ChangelogList` renders a timeline of filtered blog posts
-- [ ] `ChangelogList` handles empty state gracefully
-- [ ] `ChangelogList` is exported from `src/blog/index.ts` and `src/index.ts`
-- [ ] `defaultLandingConfig` provides a complete, valid section configuration
-- [ ] `getLandingConfig()` is exported from `src/index.ts`
-- [ ] All new files use relative imports (no `@/` aliases)
-- [ ] All files have `"use client"` directive where needed (components only, not config)
-- [ ] No new npm dependencies introduced
-- [ ] TypeScript compiles without errors (`npx next build`)
-- [ ] App runs correctly after changes
+- [x] `ChangelogList` renders a timeline of filtered blog posts
+- [x] `ChangelogList` handles empty state gracefully
+- [x] `ChangelogList` is exported from `src/blog/index.ts` and `src/index.ts`
+- [x] `defaultLandingConfig` provides a complete, valid section configuration
+- [x] `getLandingConfig()` is exported from `src/index.ts`
+- [x] All new files use relative imports (no `@/` aliases)
+- [x] All files have `"use client"` directive where needed (components only, not config)
+- [x] No new npm dependencies introduced
+- [x] TypeScript compiles without errors (`npx next build`)
+- [x] App runs correctly after changes
 
 ---
 
@@ -264,3 +264,4 @@ Existing files being edited (barrel exports in `index.ts` files) will keep their
 | Version | Date           | Author | Changes                          |
 |---------|----------------|--------|----------------------------------|
 | 1.0     | March 5, 2026  | Agent  | Initial draft                    |
+| 1.1     | March 5, 2026  | Agent  | Implementation complete — all acceptance criteria met |

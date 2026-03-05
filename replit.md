@@ -21,8 +21,8 @@ app/                    # Next.js App Router pages
 ├── robots.ts           # Auto-generated robots.txt
 └── components/         # App-level components (Navigation)
 src/                    # Reusable CMS components
-├── blog/               # BlogList, BlogPost, BlogEditor, BlogAdmin
-├── landing/            # 14 landing sections + LandingPageBuilder
+├── blog/               # BlogList, BlogPost, BlogEditor, BlogAdmin, ChangelogList
+├── landing/            # 14 landing sections + LandingPageBuilder + default-config
 ├── legal/              # 9 legal pages with LegalPageLayout
 ├── marketing/          # WaitlistForm, FeedbackWidget, SEOHead, etc.
 ├── custom-pages/       # CustomPage, CustomPageEditor
