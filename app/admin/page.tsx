@@ -6,6 +6,8 @@ import { ChangelogAdmin } from "@/src/blog";
 import { WaitlistAdmin } from "@/src/marketing";
 import { CustomPageEditor } from "@/src/custom-pages";
 import { MediaLibrary } from "@/src/media";
+import { AdminAuthGate } from "@/src/admin/AdminAuthGate";
+import { useAuth } from "@/src/lib/auth";
 import { cn } from "@/src/lib/utils";
 import { FileText, Users, Layout, ScrollText, ImageIcon } from "lucide-react";
 
@@ -19,8 +21,10 @@ const tabs = [
 
 type TabId = (typeof tabs)[number]["id"];
 
-export default function AdminPage() {
+function AdminContent() {
   const [activeTab, setActiveTab] = useState<TabId>("blog");
+  const { user } = useAuth();
+  const userId = user?.id;
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
@@ -47,11 +51,19 @@ export default function AdminPage() {
         })}
       </div>
 
-      {activeTab === "blog" && <BlogAdmin />}
+      {activeTab === "blog" && <BlogAdmin userId={userId} />}
       {activeTab === "changelog" && <ChangelogAdmin />}
       {activeTab === "media" && <MediaLibrary />}
       {activeTab === "waitlist" && <WaitlistAdmin />}
-      {activeTab === "pages" && <CustomPageEditor />}
+      {activeTab === "pages" && <CustomPageEditor userId={userId} />}
     </div>
+  );
+}
+
+export default function AdminPage() {
+  return (
+    <AdminAuthGate>
+      <AdminContent />
+    </AdminAuthGate>
   );
 }

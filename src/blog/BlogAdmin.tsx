@@ -167,12 +167,17 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
     setSaving(true);
     try {
       const supabase = getBrowserClient();
+      if (!userId) {
+        showError("You must be signed in to create posts");
+        setSaving(false);
+        return;
+      }
       const { error } = await supabase.from("posts").insert({
         title: data.title,
         slug: slugify(data.title),
         content: data.content,
         published: false,
-        author_id: userId || "anonymous",
+        author_id: userId,
       });
       if (error) throw error;
       setCreating(false);

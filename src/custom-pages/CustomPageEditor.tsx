@@ -116,6 +116,11 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
     setSaving(true);
     try {
       const supabase = getBrowserClient();
+      if (!userId) {
+        showError("You must be signed in to create pages");
+        setSaving(false);
+        return;
+      }
       const { error } = await supabase.from("posts").insert({
         title: data.title,
         slug: formSlug || slugify(data.title),
@@ -123,7 +128,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
         content: data.content,
         type: "page",
         published: formPublished,
-        author_id: userId || "anonymous",
+        author_id: userId,
       });
       if (error) throw error;
       setCreating(false);

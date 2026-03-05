@@ -14,8 +14,13 @@ export function getSupabaseAdmin() {
   });
 }
 
+let browserClient: ReturnType<typeof createClient> | null = null;
+
 export function getBrowserClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(url, key);
+  if (!browserClient) {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+    browserClient = createClient(url, key);
+  }
+  return browserClient;
 }

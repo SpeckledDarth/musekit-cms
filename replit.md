@@ -51,6 +51,12 @@ src/                    # Reusable CMS components
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key
 
+## Authentication
+- `src/lib/auth.tsx` — AuthProvider + useAuth hook using Supabase Auth (email/password)
+- `src/admin/AdminAuthGate.tsx` — Login gate for admin pages; shows login form if unauthenticated
+- Admin page passes `user.id` to BlogAdmin and CustomPageEditor as `userId` prop
+- Create admin users via Supabase dashboard (Authentication > Users > Add user)
+
 ## Error Handling & Toasts
 - `src/lib/toast.tsx` — ToastProvider + useToast hook (success/error/info), wired in `app/layout.tsx`
 - All admin CRUD operations show toast notifications on success/failure
