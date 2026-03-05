@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { getBrowserClient } from "@/src/lib/supabase";
 import { slugify, cn, formatDate } from "@/src/lib/utils";
+import { useToast } from "@/src/lib/toast";
 import { BlogEditor } from "@/src/blog/BlogEditor";
 import {
   Plus,
@@ -50,6 +51,8 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   const [formExcerpt, setFormExcerpt] = useState("");
   const [formPublished, setFormPublished] = useState(true);
   const [formContent, setFormContent] = useState("");
+
+  const { success, error: showError } = useToast();
 
   function resetForm() {
     setFormTitle("");
@@ -99,6 +102,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
       setPages(data || []);
     } catch (err) {
       console.error("Failed to fetch pages:", err);
+      showError("Failed to load pages");
     } finally {
       setLoading(false);
     }
@@ -124,9 +128,11 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
       if (error) throw error;
       setCreating(false);
       resetForm();
+      success("Page created");
       fetchPages();
     } catch (err) {
       console.error("Failed to create page:", err);
+      showError("Failed to create page");
     } finally {
       setSaving(false);
     }
@@ -150,9 +156,11 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
       if (error) throw error;
       setEditing(null);
       resetForm();
+      success("Page updated");
       fetchPages();
     } catch (err) {
       console.error("Failed to update page:", err);
+      showError("Failed to update page");
     } finally {
       setSaving(false);
     }
@@ -169,9 +177,11 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
         next.delete(id);
         return next;
       });
+      success("Page deleted");
       fetchPages();
     } catch (err) {
       console.error("Failed to delete page:", err);
+      showError("Failed to delete page");
     }
   }
 
@@ -251,10 +261,13 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
         .delete()
         .in("id", Array.from(selected));
       if (error) throw error;
+      const count = selected.size;
       setSelected(new Set());
+      success(`${count} page(s) deleted`);
       fetchPages();
     } catch (err) {
       console.error("Failed to bulk delete:", err);
+      showError("Failed to delete selected pages");
     }
   }
 
@@ -292,6 +305,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           <button
             type="button"
             onClick={() => setFormPublished(!formPublished)}
+            aria-label={formPublished ? "Set to draft" : "Set to published"}
             className={cn(
               "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
               formPublished ? "bg-green-600" : "bg-gray-300 dark:bg-gray-600"
@@ -356,7 +370,9 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
       <div className="mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <label htmlFor="pages-search" className="sr-only">Search pages</label>
           <input
+            id="pages-search"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -390,13 +406,22 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
       ) : filteredAndSorted.length === 0 ? (
         <div className="text-center py-16">
           <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             {pages.length === 0 ? "No custom pages yet." : "No pages match your search."}
           </p>
+          {pages.length === 0 && (
+            <button
+              onClick={initFormForCreate}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" />
+              Create your first page
+            </button>
+          )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[650px]">
             <thead>
               <tr className="bg-muted/50">
                 <th className="w-10 px-3 py-3">
@@ -404,6 +429,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
                     type="checkbox"
                     checked={selected.size === filteredAndSorted.length && filteredAndSorted.length > 0}
                     onChange={toggleSelectAll}
+                    aria-label="Select all pages"
                     className="rounded border-border"
                   />
                 </th>
@@ -454,6 +480,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
                       type="checkbox"
                       checked={selected.has(page.id)}
                       onChange={() => toggleSelect(page.id)}
+                      aria-label={`Select ${page.title}`}
                       className="rounded border-border"
                     />
                   </td>
@@ -485,6 +512,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
                     <button
                       onClick={() => handleDelete(page.id)}
                       className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                      aria-label="Delete page"
                       title="Delete"
                     >
                       <Trash2 className="w-4 h-4" />

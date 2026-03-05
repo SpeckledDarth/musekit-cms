@@ -51,6 +51,13 @@ src/                    # Reusable CMS components
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key
 
+## Error Handling & Toasts
+- `src/lib/toast.tsx` — ToastProvider + useToast hook (success/error/info), wired in `app/layout.tsx`
+- All admin CRUD operations show toast notifications on success/failure
+- `app/error.tsx` — Global error boundary with retry
+- `app/not-found.tsx` — Custom 404 page
+- `app/blog/[slug]/not-found.tsx` — Blog-specific 404
+
 ## SEO
 - All dynamic routes export `generateMetadata()` using `generateSEOMeta` from `src/marketing/SEOHead.tsx`
 - Blog posts include JSON-LD Article schema via `generateJsonLd`

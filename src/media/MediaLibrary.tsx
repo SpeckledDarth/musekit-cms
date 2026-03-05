@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { getBrowserClient } from "../lib/supabase";
+import { useToast } from "../lib/toast";
 import {
   Search,
   Upload,
@@ -72,6 +73,8 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  const { success, error: showError } = useToast();
+
   const fetchFiles = useCallback(async () => {
     try {
       const supabase = getBrowserClient();
@@ -96,6 +99,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       setFiles(mediaFiles);
     } catch (err) {
       console.error("Failed to fetch media files:", err);
+      showError("Failed to load media files");
     } finally {
       setLoading(false);
     }
@@ -134,6 +138,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
     try {
       const supabase = getBrowserClient();
       const errors: string[] = [];
+      let uploaded = 0;
 
       for (const file of filesToUpload) {
         const validationError = validateFile(file);
@@ -150,6 +155,8 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
 
         if (error) {
           errors.push(`${file.name}: ${error.message}`);
+        } else {
+          uploaded++;
         }
       }
 
@@ -157,10 +164,15 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
         setUploadError(errors.join("\n"));
       }
 
+      if (uploaded > 0) {
+        success(`${uploaded} file(s) uploaded`);
+      }
+
       await fetchFiles();
     } catch (err) {
       setUploadError("Upload failed. Please try again.");
       console.error("Upload error:", err);
+      showError("Upload failed");
     } finally {
       setUploading(false);
     }
@@ -188,9 +200,11 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       const { error } = await supabase.storage.from(BUCKET).remove([file.name]);
       if (error) throw error;
       setDeleteConfirmId(null);
+      success("File deleted");
       await fetchFiles();
     } catch (err) {
       console.error("Failed to delete file:", err);
+      showError("Failed to delete file");
     }
   }
 
@@ -198,6 +212,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
     try {
       await navigator.clipboard.writeText(file.publicUrl);
       setCopiedId(file.id);
+      success("URL copied to clipboard");
       setTimeout(() => setCopiedId(null), 2000);
     } catch {
       const textarea = document.createElement("textarea");
@@ -207,6 +222,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       document.execCommand("copy");
       document.body.removeChild(textarea);
       setCopiedId(file.id);
+      success("URL copied to clipboard");
       setTimeout(() => setCopiedId(null), 2000);
     }
   }
@@ -233,6 +249,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
           accept={ALLOWED_TYPES.join(",")}
           onChange={(e) => e.target.files && uploadFiles(e.target.files)}
           className="hidden"
+          aria-label="Upload files"
         />
       </div>
 
@@ -263,6 +280,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
           <button
             onClick={() => setUploadError(null)}
             className="ml-auto text-red-400 hover:text-red-600"
+            aria-label="Dismiss error"
           >
             <X className="w-4 h-4" />
           </button>
@@ -272,7 +290,9 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       <div className="mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <label htmlFor="media-search" className="sr-only">Search media files</label>
           <input
+            id="media-search"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -291,11 +311,20 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       ) : filtered.length === 0 ? (
         <div className="text-center py-16">
           <ImageIcon className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             {files.length === 0
               ? "No media files yet. Upload your first image!"
               : "No files match your search."}
           </p>
+          {files.length === 0 && (
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
+            >
+              <Upload className="w-4 h-4" />
+              Upload your first image
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
@@ -324,6 +353,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                           setPreviewFile(file);
                         }}
                         className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white"
+                        aria-label={`Preview ${file.name}`}
                         title="Preview"
                       >
                         <Eye className="w-4 h-4" />
@@ -334,6 +364,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                           handleCopyUrl(file);
                         }}
                         className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white"
+                        aria-label={`Copy URL for ${file.name}`}
                         title="Copy URL"
                       >
                         {copiedId === file.id ? (
@@ -348,6 +379,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                           setDeleteConfirmId(file.id);
                         }}
                         className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white"
+                        aria-label={`Delete ${file.name}`}
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -369,7 +401,12 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
 
       {deleteConfirmId && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-background border border-border rounded-lg p-6 max-w-sm mx-4 shadow-lg">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Delete file confirmation"
+            className="bg-background border border-border rounded-lg p-6 max-w-sm mx-4 shadow-lg"
+          >
             <h3 className="text-lg font-semibold mb-2">Delete File</h3>
             <p className="text-sm text-muted-foreground mb-4">
               Are you sure you want to delete this file? This action cannot be undone.
@@ -399,10 +436,14 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
         <div
           className="fixed inset-0 z-50 flex items-center justify-center bg-black/80"
           onClick={() => setPreviewFile(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image preview"
         >
           <button
             onClick={() => setPreviewFile(null)}
             className="absolute top-4 right-4 p-2 text-white/80 hover:text-white bg-black/40 rounded-full"
+            aria-label="Close preview"
           >
             <X className="w-6 h-6" />
           </button>

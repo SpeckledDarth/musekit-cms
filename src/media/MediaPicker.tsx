@@ -147,10 +147,19 @@ export function MediaPicker({ open, onClose, onSelect }: MediaPickerProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-background border border-border rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] mx-4 flex flex-col">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Select an image"
+        className="bg-background border border-border rounded-lg shadow-xl w-full max-w-3xl max-h-[85vh] mx-4 flex flex-col"
+      >
         <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <h2 className="text-lg font-semibold">Select Image</h2>
-          <button onClick={onClose} className="p-1 text-muted-foreground hover:text-foreground rounded-md">
+          <button
+            onClick={onClose}
+            className="p-1 text-muted-foreground hover:text-foreground rounded-md"
+            aria-label="Close image picker"
+          >
             <X className="w-5 h-5" />
           </button>
         </div>
@@ -158,7 +167,9 @@ export function MediaPicker({ open, onClose, onSelect }: MediaPickerProps) {
         <div className="px-6 pt-4 flex gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <label htmlFor="picker-search" className="sr-only">Search media files</label>
             <input
+              id="picker-search"
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
@@ -181,6 +192,7 @@ export function MediaPicker({ open, onClose, onSelect }: MediaPickerProps) {
             accept={ALLOWED_TYPES.join(",")}
             onChange={(e) => handleUpload(e.target.files)}
             className="hidden"
+            aria-label="Upload files"
           />
         </div>
 
@@ -188,7 +200,11 @@ export function MediaPicker({ open, onClose, onSelect }: MediaPickerProps) {
           <div className="mx-6 mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md flex items-start gap-2">
             <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
             <span className="text-xs text-red-700 dark:text-red-300 whitespace-pre-line">{uploadError}</span>
-            <button onClick={() => setUploadError(null)} className="ml-auto text-red-400 hover:text-red-600">
+            <button
+              onClick={() => setUploadError(null)}
+              className="ml-auto text-red-400 hover:text-red-600"
+              aria-label="Dismiss upload error"
+            >
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
@@ -214,6 +230,7 @@ export function MediaPicker({ open, onClose, onSelect }: MediaPickerProps) {
                 <button
                   key={file.id}
                   onClick={() => setSelectedUrl(file.publicUrl)}
+                  aria-label={`Select ${file.name}`}
                   className={cn(
                     "relative aspect-square rounded-lg overflow-hidden border-2 transition-all",
                     selectedUrl === file.publicUrl

@@ -3,7 +3,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { getBrowserClient } from "@/src/lib/supabase";
 import { formatDate } from "@/src/lib/utils";
-import { Download, RefreshCw, Search, ChevronUp, ChevronDown, Plus, Trash2, X } from "lucide-react";
+import { useToast } from "@/src/lib/toast";
+import { Download, RefreshCw, Search, ChevronUp, ChevronDown, Plus, Trash2, X, Users } from "lucide-react";
 
 interface WaitlistEntry {
   id: string;
@@ -26,6 +27,8 @@ export function WaitlistAdmin() {
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const { success, error: showError } = useToast();
+
   async function fetchEntries() {
     setLoading(true);
     try {
@@ -38,6 +41,7 @@ export function WaitlistAdmin() {
       setEntries(data || []);
     } catch (err) {
       console.error("Failed to fetch waitlist:", err);
+      showError("Failed to load waitlist entries");
     } finally {
       setLoading(false);
     }
@@ -99,9 +103,11 @@ export function WaitlistAdmin() {
       if (error) throw error;
       setNewEmail("");
       setShowAddForm(false);
+      success("Entry added to waitlist");
       await fetchEntries();
     } catch (err) {
       console.error("Failed to add entry:", err);
+      showError("Failed to add entry");
     } finally {
       setAddingEntry(false);
     }
@@ -121,9 +127,11 @@ export function WaitlistAdmin() {
         next.delete(id);
         return next;
       });
+      success("Entry deleted");
       await fetchEntries();
     } catch (err) {
       console.error("Failed to delete entry:", err);
+      showError("Failed to delete entry");
     }
   }
 
@@ -154,10 +162,13 @@ export function WaitlistAdmin() {
         .delete()
         .in("id", Array.from(selected));
       if (error) throw error;
+      const count = selected.size;
       setSelected(new Set());
+      success(`${count} entry(ies) deleted`);
       await fetchEntries();
     } catch (err) {
       console.error("Failed to bulk delete:", err);
+      showError("Failed to delete selected entries");
     }
   }
 
@@ -174,6 +185,7 @@ export function WaitlistAdmin() {
     a.download = `waitlist-${new Date().toISOString().split("T")[0]}.csv`;
     a.click();
     URL.revokeObjectURL(url);
+    success("CSV exported");
   }
 
   return (
@@ -194,6 +206,7 @@ export function WaitlistAdmin() {
           <button
             onClick={fetchEntries}
             className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-muted transition-colors"
+            aria-label="Refresh waitlist"
           >
             <RefreshCw className="w-4 h-4" />
             Refresh
@@ -212,7 +225,9 @@ export function WaitlistAdmin() {
       {showAddForm && (
         <div className="mb-4 p-4 border border-border rounded-lg bg-muted/30">
           <div className="flex items-center gap-2">
+            <label htmlFor="waitlist-add-email" className="sr-only">Email address</label>
             <input
+              id="waitlist-add-email"
               type="email"
               value={newEmail}
               onChange={(e) => setNewEmail(e.target.value)}
@@ -231,6 +246,7 @@ export function WaitlistAdmin() {
             <button
               onClick={() => { setShowAddForm(false); setNewEmail(""); }}
               className="p-2 hover:bg-muted rounded-md transition-colors"
+              aria-label="Close add form"
             >
               <X className="w-4 h-4" />
             </button>
@@ -241,7 +257,9 @@ export function WaitlistAdmin() {
       <div className="mb-4">
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <label htmlFor="waitlist-search" className="sr-only">Search waitlist entries</label>
           <input
+            id="waitlist-search"
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
@@ -277,12 +295,24 @@ export function WaitlistAdmin() {
           ))}
         </div>
       ) : filteredAndSortedEntries.length === 0 ? (
-        <div className="text-center py-12 text-muted-foreground">
-          <p>{searchQuery ? "No entries match your search." : "No waitlist entries yet."}</p>
+        <div className="text-center py-12">
+          <Users className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
+          <p className="text-muted-foreground mb-4">
+            {searchQuery ? "No entries match your search." : "No waitlist entries yet."}
+          </p>
+          {!searchQuery && entries.length === 0 && (
+            <button
+              onClick={() => setShowAddForm(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" />
+              Add first entry
+            </button>
+          )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[500px]">
             <thead>
               <tr className="bg-muted/50">
                 <th className="w-10 px-3 py-3">
@@ -290,6 +320,7 @@ export function WaitlistAdmin() {
                     type="checkbox"
                     checked={selected.size === filteredAndSortedEntries.length && filteredAndSortedEntries.length > 0}
                     onChange={toggleSelectAll}
+                    aria-label="Select all entries"
                     className="rounded border-border"
                   />
                 </th>
@@ -322,6 +353,7 @@ export function WaitlistAdmin() {
                       type="checkbox"
                       checked={selected.has(entry.id)}
                       onChange={() => toggleSelect(entry.id)}
+                      aria-label={`Select ${entry.email}`}
                       className="rounded border-border"
                     />
                   </td>
@@ -349,6 +381,7 @@ export function WaitlistAdmin() {
                       <button
                         onClick={() => setDeleteConfirmId(entry.id)}
                         className="p-1 text-muted-foreground hover:text-red-600 rounded transition-colors"
+                        aria-label={`Delete ${entry.email}`}
                         title="Delete entry"
                       >
                         <Trash2 className="w-4 h-4" />

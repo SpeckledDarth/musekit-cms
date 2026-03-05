@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getBrowserClient } from "../lib/supabase";
 import { formatDate, slugify } from "../lib/utils";
 import { cn } from "../lib/utils";
+import { useToast } from "../lib/toast";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -67,6 +68,8 @@ export function ChangelogAdmin() {
   const [formCategory, setFormCategory] = useState<string>("update");
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
 
+  const { success, error: showError } = useToast();
+
   async function fetchEntries() {
     try {
       const supabase = getBrowserClient();
@@ -78,6 +81,7 @@ export function ChangelogAdmin() {
       setEntries(data || []);
     } catch (err) {
       console.error("Failed to fetch changelog entries:", err);
+      showError("Failed to load changelog entries");
     } finally {
       setLoading(false);
     }
@@ -176,6 +180,7 @@ export function ChangelogAdmin() {
           published: false,
         });
         if (error) throw error;
+        success("Changelog entry created");
       } else if (mode === "edit" && editingEntry) {
         const { error } = await supabase
           .from("changelog_entries")
@@ -187,12 +192,14 @@ export function ChangelogAdmin() {
           })
           .eq("id", editingEntry.id);
         if (error) throw error;
+        success("Changelog entry updated");
       }
       setMode("list");
       setEditingEntry(null);
       fetchEntries();
     } catch (err) {
       console.error("Failed to save changelog entry:", err);
+      showError("Failed to save changelog entry");
     } finally {
       setSaving(false);
     }
@@ -210,9 +217,11 @@ export function ChangelogAdmin() {
         })
         .eq("id", entry.id);
       if (error) throw error;
+      success(nowPublished ? "Entry published" : "Entry unpublished");
       fetchEntries();
     } catch (err) {
       console.error("Failed to toggle publish:", err);
+      showError("Failed to update publish status");
     }
   }
 
@@ -222,9 +231,11 @@ export function ChangelogAdmin() {
       const supabase = getBrowserClient();
       const { error } = await supabase.from("changelog_entries").delete().eq("id", id);
       if (error) throw error;
+      success("Changelog entry deleted");
       fetchEntries();
     } catch (err) {
       console.error("Failed to delete changelog entry:", err);
+      showError("Failed to delete changelog entry");
     }
   }
 
@@ -236,6 +247,7 @@ export function ChangelogAdmin() {
             <button
               onClick={cancelEdit}
               className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+              aria-label="Go back to list"
             >
               <ArrowLeft className="w-5 h-5" />
             </button>
@@ -351,7 +363,9 @@ export function ChangelogAdmin() {
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <label htmlFor="changelog-search" className="sr-only">Search changelog entries</label>
           <input
+            id="changelog-search"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -362,6 +376,7 @@ export function ChangelogAdmin() {
         <select
           value={categoryFilter}
           onChange={(e) => setCategoryFilter(e.target.value as CategoryFilter)}
+          aria-label="Filter by category"
           className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
           {categoryOptions.map((f) => (
@@ -379,15 +394,24 @@ export function ChangelogAdmin() {
       ) : filteredAndSorted.length === 0 ? (
         <div className="text-center py-16">
           <ScrollText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             {entries.length === 0
               ? "No changelog entries yet. Create your first entry!"
               : "No entries match your filters."}
           </p>
+          {entries.length === 0 && (
+            <button
+              onClick={startCreate}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" />
+              Create your first entry
+            </button>
+          )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[600px]">
             <thead>
               <tr className="bg-muted/50">
                 <th
@@ -467,6 +491,7 @@ export function ChangelogAdmin() {
                       <button
                         onClick={() => handleTogglePublish(entry)}
                         className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+                        aria-label={entry.published ? "Unpublish entry" : "Publish entry"}
                         title={entry.published ? "Unpublish" : "Publish"}
                       >
                         {entry.published ? (
@@ -478,6 +503,7 @@ export function ChangelogAdmin() {
                       <button
                         onClick={() => handleDelete(entry.id)}
                         className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                        aria-label="Delete entry"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />

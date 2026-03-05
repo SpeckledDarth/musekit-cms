@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo } from "react";
 import { getBrowserClient } from "@/src/lib/supabase";
 import { formatDate, slugify } from "@/src/lib/utils";
 import { BlogEditor } from "./BlogEditor";
+import { useToast } from "@/src/lib/toast";
 import {
   Plus,
   Trash2,
@@ -52,6 +53,8 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
   const [sortDir, setSortDir] = useState<SortDir>("desc");
   const [selected, setSelected] = useState<Set<string>>(new Set());
 
+  const { success, error: showError } = useToast();
+
   async function fetchPosts() {
     try {
       const supabase = getBrowserClient();
@@ -63,6 +66,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
       setPosts(data || []);
     } catch (err) {
       console.error("Failed to fetch posts:", err);
+      showError("Failed to load posts");
     } finally {
       setLoading(false);
     }
@@ -172,9 +176,11 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
       });
       if (error) throw error;
       setCreating(false);
+      success("Post created");
       fetchPosts();
     } catch (err) {
       console.error("Failed to create post:", err);
+      showError("Failed to create post");
     } finally {
       setSaving(false);
     }
@@ -195,9 +201,11 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         .eq("id", editing.id);
       if (error) throw error;
       setEditing(null);
+      success("Post updated");
       fetchPosts();
     } catch (err) {
       console.error("Failed to update post:", err);
+      showError("Failed to update post");
     } finally {
       setSaving(false);
     }
@@ -215,9 +223,11 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         })
         .eq("id", post.id);
       if (error) throw error;
+      success(nowPublished ? "Post published" : "Post unpublished");
       fetchPosts();
     } catch (err) {
       console.error("Failed to toggle publish:", err);
+      showError("Failed to update publish status");
     }
   }
 
@@ -232,9 +242,11 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         next.delete(id);
         return next;
       });
+      success("Post deleted");
       fetchPosts();
     } catch (err) {
       console.error("Failed to delete post:", err);
+      showError("Failed to delete post");
     }
   }
 
@@ -249,9 +261,11 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         .in("id", Array.from(selected));
       if (error) throw error;
       setSelected(new Set());
+      success(`${selected.size} post(s) deleted`);
       fetchPosts();
     } catch (err) {
       console.error("Failed to bulk delete:", err);
+      showError("Failed to delete selected posts");
     }
   }
 
@@ -270,9 +284,11 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         .in("id", Array.from(selected));
       if (error) throw error;
       setSelected(new Set());
+      success(`${selected.size} post(s) ${action}ed`);
       fetchPosts();
     } catch (err) {
       console.error(`Failed to bulk ${action}:`, err);
+      showError(`Failed to ${action} selected posts`);
     }
   }
 
@@ -334,7 +350,9 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <label htmlFor="blog-search" className="sr-only">Search posts</label>
           <input
+            id="blog-search"
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
@@ -345,6 +363,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          aria-label="Filter by status"
           className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="all">All Status</option>
@@ -354,6 +373,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         <select
           value={typeFilter}
           onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+          aria-label="Filter by type"
           className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
           <option value="all">All Types</option>
@@ -404,15 +424,24 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
       ) : filteredAndSorted.length === 0 ? (
         <div className="text-center py-16">
           <FileText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground mb-4">
             {posts.length === 0
               ? "No posts yet. Create your first post!"
               : "No posts match your filters."}
           </p>
+          {posts.length === 0 && (
+            <button
+              onClick={() => setCreating(true)}
+              className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
+            >
+              <Plus className="w-4 h-4" />
+              Create your first post
+            </button>
+          )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-hidden">
-          <table className="w-full">
+        <div className="border border-border rounded-lg overflow-x-auto">
+          <table className="w-full min-w-[700px]">
             <thead>
               <tr className="bg-muted/50">
                 <th className="w-10 px-3 py-3">
@@ -420,6 +449,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
                     type="checkbox"
                     checked={selected.size === filteredAndSorted.length && filteredAndSorted.length > 0}
                     onChange={toggleSelectAll}
+                    aria-label="Select all posts"
                     className="rounded border-border"
                   />
                 </th>
@@ -480,6 +510,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
                       type="checkbox"
                       checked={selected.has(post.id)}
                       onChange={() => toggleSelect(post.id)}
+                      aria-label={`Select ${post.title}`}
                       className="rounded border-border"
                     />
                   </td>
@@ -514,6 +545,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
                       <button
                         onClick={() => handleTogglePublish(post)}
                         className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+                        aria-label={post.published ? "Unpublish post" : "Publish post"}
                         title={post.published ? "Unpublish" : "Publish"}
                       >
                         {post.published ? (
@@ -525,6 +557,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
                       <button
                         onClick={() => handleDelete(post.id)}
                         className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                        aria-label="Delete post"
                         title="Delete"
                       >
                         <Trash2 className="w-4 h-4" />
