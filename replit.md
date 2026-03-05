@@ -51,6 +51,12 @@ src/                    # Reusable CMS components
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
 - `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key
 
+## SEO
+- All dynamic routes export `generateMetadata()` using `generateSEOMeta` from `src/marketing/SEOHead.tsx`
+- Blog posts include JSON-LD Article schema via `generateJsonLd`
+- Sitemap (`app/sitemap.ts`) queries Supabase for published posts, changelog entries, features, and custom pages
+- Admin routes use `robots: { index: false, follow: false }` via `app/admin/layout.tsx`
+
 ## Commands
 - `npm run dev` — Development server on port 5000
 - `npm run build` — Production build
