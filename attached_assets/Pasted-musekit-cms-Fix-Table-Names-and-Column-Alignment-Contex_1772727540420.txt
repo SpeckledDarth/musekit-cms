@@ -1,0 +1,60 @@
+musekit-cms — Fix Table Names and Column Alignment
+Context
+You are working in the musekit-cms module Repl. This builds packages/cms/.
+
+CRITICAL TABLE MAPPING:
+
+Code says	Real DB table	Column differences
+content_posts	posts	NO category or tags columns
+waitlist	waitlist_entries	same structure
+brand_settings	settings	NO updated_at; columns: id, key, value
+Tables that are correct: feedback
+
+Real posts table columns: id, type, title, slug, excerpt, content, author_id, published, published_at, created_at, updated_at
+
+FIX 1 (Critical): Rename content_posts → posts everywhere
+Files to update:
+
+src/blog/BlogAdmin.tsx (lines 33, 53, 78, 102, 119)
+src/blog/BlogList.tsx (line 32)
+src/blog/BlogPost.tsx (line 37)
+src/blog/ChangelogList.tsx (line 97)
+src/custom-pages/CustomPageEditor.tsx (lines 28, 49, 73, 90)
+src/custom-pages/CustomPage.tsx (line 29)
+src/landing/FeatureSubPage.tsx (line 34)
+In ALL these files: .from("content_posts") → .from("posts")
+
+FIX 2 (Critical): Remove category and tags from blog operations
+File: src/blog/BlogAdmin.tsx
+
+The posts table does NOT have category or tags columns.
+
+Remove category and tags from:
+
+The insert call in handleCreate (around line 53)
+The update call in handleUpdate (around line 78)
+Any select queries that reference these columns
+Any UI form fields for category/tags (or keep UI but don't persist to DB)
+FIX 3 (High): Hardcoded author_id
+File: src/blog/BlogAdmin.tsx
+
+Change author_id: "admin" → use the actual logged-in user's ID. Accept userId as a prop or get it from auth context.
+
+FIX 4 (Medium): Rename waitlist → waitlist_entries
+Files:
+
+src/marketing/WaitlistForm.tsx (line 30)
+src/marketing/WaitlistAdmin.tsx (line 23)
+Change .from("waitlist") → .from("waitlist_entries")
+
+FIX 5 (Medium): LandingPageBuilder — settings table reference
+File: src/landing/LandingPageBuilder.tsx
+
+If this references brand_settings, change to settings. Remember: settings has NO updated_at column.
+
+Testing Checklist
+Blog list loads — queries posts table successfully
+Create new blog post — no column errors (no category/tags)
+Blog post has correct author_id
+Waitlist form submits to waitlist_entries
+Landing page renders correctly
