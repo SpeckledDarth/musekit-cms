@@ -2,43 +2,37 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
-import { cn, formatDate } from "@/src/lib/utils";
+import { formatDate } from "@/src/lib/utils";
 import { getBrowserClient } from "@/src/lib/supabase";
 
 interface Post {
   id: string;
+  type?: string;
   title: string;
   slug: string;
+  excerpt?: string;
   content: string;
-  status: string;
   author_id: string;
+  published: boolean;
   published_at: string | null;
   created_at: string;
-  category?: string;
-  tags?: string[];
-  excerpt?: string;
+  updated_at?: string;
 }
 
 export function BlogList() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
 
   useEffect(() => {
     async function fetchPosts() {
       try {
         const supabase = getBrowserClient();
-        let query = supabase
-          .from("content_posts")
+        const { data, error } = await supabase
+          .from("posts")
           .select("*")
-          .eq("status", "published")
+          .eq("published", true)
           .order("published_at", { ascending: false });
 
-        if (selectedCategory !== "all") {
-          query = query.eq("category", selectedCategory);
-        }
-
-        const { data, error } = await query;
         if (error) throw error;
         setPosts(data || []);
       } catch (err) {
@@ -48,9 +42,7 @@ export function BlogList() {
       }
     }
     fetchPosts();
-  }, [selectedCategory]);
-
-  const categories = ["all", ...Array.from(new Set(posts.map((p) => p.category).filter(Boolean)))];
+  }, []);
 
   if (loading) {
     return (
@@ -74,25 +66,6 @@ export function BlogList() {
       <h1 className="text-4xl font-bold mb-2">Blog</h1>
       <p className="text-muted-foreground mb-8">Latest news, updates, and insights</p>
 
-      {categories.length > 1 && (
-        <div className="flex gap-2 mb-8 flex-wrap">
-          {categories.map((cat) => (
-            <button
-              key={cat}
-              onClick={() => setSelectedCategory(cat as string)}
-              className={cn(
-                "px-4 py-1.5 rounded-full text-sm font-medium transition-colors",
-                selectedCategory === cat
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:bg-muted/80"
-              )}
-            >
-              {cat === "all" ? "All" : (cat as string)}
-            </button>
-          ))}
-        </div>
-      )}
-
       {posts.length === 0 ? (
         <p className="text-muted-foreground text-center py-12">No posts yet. Check back soon!</p>
       ) : (
@@ -106,12 +79,6 @@ export function BlogList() {
               </Link>
               <div className="flex items-center gap-3 text-sm text-muted-foreground mb-3">
                 {post.published_at && <time>{formatDate(post.published_at)}</time>}
-                {post.category && (
-                  <>
-                    <span>·</span>
-                    <span>{post.category}</span>
-                  </>
-                )}
               </div>
               <p className="text-muted-foreground leading-relaxed">
                 {post.excerpt || post.content.slice(0, 200).replace(/[#*_]/g, "")}...

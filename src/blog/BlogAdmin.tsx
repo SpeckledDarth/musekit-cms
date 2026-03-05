@@ -8,18 +8,23 @@ import { Plus, Pencil, Trash2, Eye, EyeOff } from "lucide-react";
 
 interface Post {
   id: string;
+  type?: string;
   title: string;
   slug: string;
+  excerpt?: string;
   content: string;
-  status: string;
   author_id: string;
+  published: boolean;
   published_at: string | null;
   created_at: string;
-  category?: string;
-  tags?: string[];
+  updated_at?: string;
 }
 
-export function BlogAdmin() {
+interface BlogAdminProps {
+  userId?: string;
+}
+
+export function BlogAdmin({ userId }: BlogAdminProps) {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Post | null>(null);
@@ -30,7 +35,7 @@ export function BlogAdmin() {
     try {
       const supabase = getBrowserClient();
       const { data, error } = await supabase
-        .from("content_posts")
+        .from("posts")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;
@@ -46,18 +51,16 @@ export function BlogAdmin() {
     fetchPosts();
   }, []);
 
-  async function handleCreate(data: { title: string; content: string; category: string; tags: string[] }) {
+  async function handleCreate(data: { title: string; content: string }) {
     setSaving(true);
     try {
       const supabase = getBrowserClient();
-      const { error } = await supabase.from("content_posts").insert({
+      const { error } = await supabase.from("posts").insert({
         title: data.title,
         slug: slugify(data.title),
         content: data.content,
-        category: data.category,
-        tags: data.tags,
-        status: "draft",
-        author_id: "admin",
+        published: false,
+        author_id: userId || "anonymous",
       });
       if (error) throw error;
       setCreating(false);
@@ -69,19 +72,17 @@ export function BlogAdmin() {
     }
   }
 
-  async function handleUpdate(data: { title: string; content: string; category: string; tags: string[] }) {
+  async function handleUpdate(data: { title: string; content: string }) {
     if (!editing) return;
     setSaving(true);
     try {
       const supabase = getBrowserClient();
       const { error } = await supabase
-        .from("content_posts")
+        .from("posts")
         .update({
           title: data.title,
           slug: slugify(data.title),
           content: data.content,
-          category: data.category,
-          tags: data.tags,
         })
         .eq("id", editing.id);
       if (error) throw error;
@@ -97,12 +98,12 @@ export function BlogAdmin() {
   async function handleTogglePublish(post: Post) {
     try {
       const supabase = getBrowserClient();
-      const newStatus = post.status === "published" ? "draft" : "published";
+      const nowPublished = !post.published;
       const { error } = await supabase
-        .from("content_posts")
+        .from("posts")
         .update({
-          status: newStatus,
-          published_at: newStatus === "published" ? new Date().toISOString() : null,
+          published: nowPublished,
+          published_at: nowPublished ? new Date().toISOString() : null,
         })
         .eq("id", post.id);
       if (error) throw error;
@@ -116,7 +117,7 @@ export function BlogAdmin() {
     if (!confirm("Are you sure you want to delete this post?")) return;
     try {
       const supabase = getBrowserClient();
-      const { error } = await supabase.from("content_posts").delete().eq("id", id);
+      const { error } = await supabase.from("posts").delete().eq("id", id);
       if (error) throw error;
       fetchPosts();
     } catch (err) {
@@ -156,8 +157,6 @@ export function BlogAdmin() {
         <BlogEditor
           initialTitle={editing.title}
           initialContent={editing.content}
-          initialCategory={editing.category || ""}
-          initialTags={editing.tags || []}
           onSave={handleUpdate}
           saving={saving}
         />
@@ -200,30 +199,24 @@ export function BlogAdmin() {
                 <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                   <span
                     className={
-                      post.status === "published"
+                      post.published
                         ? "text-green-600 dark:text-green-400"
                         : "text-yellow-600 dark:text-yellow-400"
                     }
                   >
-                    {post.status}
+                    {post.published ? "published" : "draft"}
                   </span>
                   <span>·</span>
                   <span>{formatDate(post.created_at)}</span>
-                  {post.category && (
-                    <>
-                      <span>·</span>
-                      <span>{post.category}</span>
-                    </>
-                  )}
                 </div>
               </div>
               <div className="flex items-center gap-1">
                 <button
                   onClick={() => handleTogglePublish(post)}
                   className="p-2 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
-                  title={post.status === "published" ? "Unpublish" : "Publish"}
+                  title={post.published ? "Unpublish" : "Publish"}
                 >
-                  {post.status === "published" ? (
+                  {post.published ? (
                     <EyeOff className="w-4 h-4" />
                   ) : (
                     <Eye className="w-4 h-4" />

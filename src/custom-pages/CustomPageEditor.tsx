@@ -8,13 +8,18 @@ import { Plus, Pencil, Trash2 } from "lucide-react";
 
 interface Page {
   id: string;
+  type?: string;
   title: string;
   slug: string;
   content: string;
-  status: string;
+  published: boolean;
 }
 
-export function CustomPageEditor() {
+interface CustomPageEditorProps {
+  userId?: string;
+}
+
+export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   const [pages, setPages] = useState<Page[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Page | null>(null);
@@ -25,9 +30,9 @@ export function CustomPageEditor() {
     try {
       const supabase = getBrowserClient();
       const { data, error } = await supabase
-        .from("content_posts")
+        .from("posts")
         .select("*")
-        .eq("category", "page")
+        .eq("type", "page")
         .order("created_at", { ascending: false });
       if (error) throw error;
       setPages(data || []);
@@ -46,13 +51,13 @@ export function CustomPageEditor() {
     setSaving(true);
     try {
       const supabase = getBrowserClient();
-      const { error } = await supabase.from("content_posts").insert({
+      const { error } = await supabase.from("posts").insert({
         title: data.title,
         slug: slugify(data.title),
         content: data.content,
-        category: "page",
-        status: "published",
-        author_id: "admin",
+        type: "page",
+        published: true,
+        author_id: userId || "anonymous",
       });
       if (error) throw error;
       setCreating(false);
@@ -70,7 +75,7 @@ export function CustomPageEditor() {
     try {
       const supabase = getBrowserClient();
       const { error } = await supabase
-        .from("content_posts")
+        .from("posts")
         .update({ title: data.title, slug: slugify(data.title), content: data.content })
         .eq("id", editing.id);
       if (error) throw error;
@@ -87,7 +92,7 @@ export function CustomPageEditor() {
     if (!confirm("Are you sure?")) return;
     try {
       const supabase = getBrowserClient();
-      const { error } = await supabase.from("content_posts").delete().eq("id", id);
+      const { error } = await supabase.from("posts").delete().eq("id", id);
       if (error) throw error;
       fetchPages();
     } catch (err) {

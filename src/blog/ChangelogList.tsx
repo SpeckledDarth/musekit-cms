@@ -8,16 +8,16 @@ import { ScrollText } from "lucide-react";
 
 interface Post {
   id: string;
+  type?: string;
   title: string;
   slug: string;
+  excerpt?: string;
   content: string;
-  status: string;
   author_id: string;
+  published: boolean;
   published_at: string | null;
   created_at: string;
-  category?: string;
-  tags?: string[];
-  excerpt?: string;
+  updated_at?: string;
 }
 
 type FilterType = "all" | "release" | "update" | "feature" | "fix";
@@ -40,20 +40,18 @@ const tagColors: Record<string, string> = {
 const defaultBadge = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
 
 function getTagBadge(post: Post): { label: string; className: string } {
-  const tags = post.tags || [];
-  for (const tag of ["release", "update", "feature", "fix"]) {
-    if (tags.includes(tag)) {
-      return { label: tag, className: tagColors[tag] };
-    }
-  }
-  if (post.category) {
-    const cat = post.category.toLowerCase();
-    if (cat.includes("release")) return { label: "release", className: tagColors.release };
-    if (cat.includes("update")) return { label: "update", className: tagColors.update };
-    if (cat.includes("feature")) return { label: "feature", className: tagColors.feature };
-    if (cat.includes("fix")) return { label: "fix", className: tagColors.fix };
-  }
-  return { label: post.category || "update", className: defaultBadge };
+  const postType = (post.type || "").toLowerCase();
+  if (postType.includes("release")) return { label: "release", className: tagColors.release };
+  if (postType.includes("update")) return { label: "update", className: tagColors.update };
+  if (postType.includes("feature")) return { label: "feature", className: tagColors.feature };
+  if (postType.includes("fix")) return { label: "fix", className: tagColors.fix };
+  return { label: postType || "update", className: defaultBadge };
+}
+
+function matchesFilter(post: Post, filter: FilterType): boolean {
+  if (filter === "all") return true;
+  const postType = (post.type || "").toLowerCase();
+  return postType.includes(filter);
 }
 
 function groupByMonth(posts: Post[]): { label: string; posts: Post[] }[] {
@@ -61,7 +59,6 @@ function groupByMonth(posts: Post[]): { label: string; posts: Post[] }[] {
   for (const post of posts) {
     const date = new Date(post.published_at || post.created_at);
     const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, "0")}`;
-    const label = date.toLocaleDateString("en-US", { year: "numeric", month: "long" });
     if (!groups[key]) groups[key] = [];
     groups[key].push(post);
   }
@@ -94,22 +91,22 @@ export function ChangelogList() {
       try {
         const supabase = getBrowserClient();
         const { data, error } = await supabase
-          .from("content_posts")
+          .from("posts")
           .select("*")
-          .eq("status", "published")
+          .eq("published", true)
           .order("published_at", { ascending: false });
 
         if (error) throw error;
 
         const changelogPosts = (data || []).filter((post: Post) => {
-          const cat = (post.category || "").toLowerCase();
-          const tags = post.tags || [];
-          const isChangelogCategory =
-            cat.includes("release") || cat.includes("product update") || cat.includes("changelog");
-          const hasChangelogTag = tags.some((t) =>
-            ["release", "update", "feature", "fix"].includes(t.toLowerCase())
+          const postType = (post.type || "").toLowerCase();
+          return (
+            postType.includes("release") ||
+            postType.includes("update") ||
+            postType.includes("changelog") ||
+            postType.includes("feature") ||
+            postType.includes("fix")
           );
-          return isChangelogCategory || hasChangelogTag;
         });
 
         setPosts(changelogPosts);
@@ -125,10 +122,7 @@ export function ChangelogList() {
   const filteredPosts =
     activeFilter === "all"
       ? posts
-      : posts.filter((post) => {
-          const tags = (post.tags || []).map((t) => t.toLowerCase());
-          return tags.includes(activeFilter);
-        });
+      : posts.filter((post) => matchesFilter(post, activeFilter));
 
   const grouped = groupByMonth(filteredPosts);
 

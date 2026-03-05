@@ -11,10 +11,11 @@ interface CustomPageProps {
 
 interface PageData {
   id: string;
+  type?: string;
   title: string;
   slug: string;
   content: string;
-  status: string;
+  published: boolean;
 }
 
 export function CustomPage({ slug }: CustomPageProps) {
@@ -26,10 +27,10 @@ export function CustomPage({ slug }: CustomPageProps) {
       try {
         const supabase = getBrowserClient();
         const { data, error } = await supabase
-          .from("content_posts")
+          .from("posts")
           .select("*")
           .eq("slug", slug)
-          .eq("status", "published")
+          .eq("published", true)
           .single();
         if (error) throw error;
         setPage(data);

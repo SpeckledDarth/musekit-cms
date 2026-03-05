@@ -9,6 +9,12 @@ Content management system for the MuseKit SaaS platform. Built with Next.js 14.2
 - **Database**: Supabase (external)
 - **Styling**: Tailwind CSS v3 with CSS custom properties for theming
 
+## Database Tables
+- `posts` — Blog posts, custom pages, features (columns: id, type, title, slug, excerpt, content, author_id, published, published_at, created_at, updated_at)
+- `waitlist_entries` — Waitlist signups
+- `feedback` — NPS/feedback submissions
+- `settings` — Key-value settings (columns: id, key, value — no updated_at)
+
 ## Project Structure
 ```
 app/                    # Next.js App Router pages

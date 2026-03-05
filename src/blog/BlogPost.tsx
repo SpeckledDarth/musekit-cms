@@ -10,15 +10,16 @@ import { ArrowLeft } from "lucide-react";
 
 interface Post {
   id: string;
+  type?: string;
   title: string;
   slug: string;
+  excerpt?: string;
   content: string;
-  status: string;
   author_id: string;
+  published: boolean;
   published_at: string | null;
   created_at: string;
-  category?: string;
-  tags?: string[];
+  updated_at?: string;
 }
 
 interface BlogPostProps {
@@ -34,10 +35,10 @@ export function BlogPost({ slug }: BlogPostProps) {
       try {
         const supabase = getBrowserClient();
         const { data, error } = await supabase
-          .from("content_posts")
+          .from("posts")
           .select("*")
           .eq("slug", slug)
-          .eq("status", "published")
+          .eq("published", true)
           .single();
 
         if (error) throw error;
@@ -90,25 +91,7 @@ export function BlogPost({ slug }: BlogPostProps) {
         <h1 className="text-4xl font-bold mb-3">{post.title}</h1>
         <div className="flex items-center gap-3 text-sm text-muted-foreground">
           {post.published_at && <time>{formatDate(post.published_at)}</time>}
-          {post.category && (
-            <>
-              <span>·</span>
-              <span>{post.category}</span>
-            </>
-          )}
         </div>
-        {post.tags && post.tags.length > 0 && (
-          <div className="flex gap-2 mt-3">
-            {post.tags.map((tag) => (
-              <span
-                key={tag}
-                className="px-2 py-0.5 bg-muted rounded-full text-xs text-muted-foreground"
-              >
-                {tag}
-              </span>
-            ))}
-          </div>
-        )}
       </header>
 
       <div className="prose prose-neutral dark:prose-invert max-w-none">

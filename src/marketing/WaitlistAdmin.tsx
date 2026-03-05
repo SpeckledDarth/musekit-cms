@@ -20,7 +20,7 @@ export function WaitlistAdmin() {
     try {
       const supabase = getBrowserClient();
       const { data, error } = await supabase
-        .from("waitlist")
+        .from("waitlist_entries")
         .select("*")
         .order("created_at", { ascending: false });
       if (error) throw error;

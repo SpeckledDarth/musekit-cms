@@ -31,10 +31,10 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
       try {
         const supabase = getBrowserClient();
         const { data, error } = await supabase
-          .from("content_posts")
+          .from("posts")
           .select("*")
           .eq("slug", slug)
-          .eq("status", "published")
+          .eq("published", true)
           .single();
 
         if (error) throw error;

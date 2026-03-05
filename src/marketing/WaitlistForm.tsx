@@ -27,7 +27,7 @@ export function WaitlistForm({
     setStatus("loading");
     try {
       const supabase = getBrowserClient();
-      const { error } = await supabase.from("waitlist").insert({ email: email.trim() });
+      const { error } = await supabase.from("waitlist_entries").insert({ email: email.trim() });
       if (error) {
         if (error.code === "23505") {
           setErrorMsg("This email is already on the waitlist!");
