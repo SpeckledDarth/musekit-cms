@@ -6,14 +6,12 @@ import { cn } from "../lib/utils";
 import { getBrowserClient } from "../lib/supabase";
 import { ScrollText } from "lucide-react";
 
-interface Post {
+interface ChangelogEntry {
   id: string;
-  type?: string;
   title: string;
   slug: string;
-  excerpt?: string;
   content: string;
-  author_id: string;
+  category: string;
   published: boolean;
   published_at: string | null;
   created_at: string;
@@ -39,37 +37,35 @@ const tagColors: Record<string, string> = {
 
 const defaultBadge = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
 
-function getTagBadge(post: Post): { label: string; className: string } {
-  const postType = (post.type || "").toLowerCase();
-  if (postType.includes("release")) return { label: "release", className: tagColors.release };
-  if (postType.includes("update")) return { label: "update", className: tagColors.update };
-  if (postType.includes("feature")) return { label: "feature", className: tagColors.feature };
-  if (postType.includes("fix")) return { label: "fix", className: tagColors.fix };
-  return { label: postType || "update", className: defaultBadge };
+function getTagBadge(entry: ChangelogEntry): { label: string; className: string } {
+  const category = (entry.category || "").toLowerCase();
+  return {
+    label: category || "update",
+    className: tagColors[category] || defaultBadge,
+  };
 }
 
-function matchesFilter(post: Post, filter: FilterType): boolean {
+function matchesFilter(entry: ChangelogEntry, filter: FilterType): boolean {
   if (filter === "all") return true;
-  const postType = (post.type || "").toLowerCase();
-  return postType.includes(filter);
+  return (entry.category || "").toLowerCase() === filter;
 }
 
-function groupByMonth(posts: Post[]): { label: string; posts: Post[] }[] {
-  const groups: Record<string, Post[]> = {};
-  for (const post of posts) {
-    const date = new Date(post.published_at || post.created_at);
+function groupByMonth(entries: ChangelogEntry[]): { label: string; entries: ChangelogEntry[] }[] {
+  const groups: Record<string, ChangelogEntry[]> = {};
+  for (const entry of entries) {
+    const date = new Date(entry.published_at || entry.created_at);
     const key = `${date.getFullYear()}-${String(date.getMonth()).padStart(2, "0")}`;
     if (!groups[key]) groups[key] = [];
-    groups[key].push(post);
+    groups[key].push(entry);
   }
   return Object.entries(groups)
     .sort(([a], [b]) => b.localeCompare(a))
-    .map(([, posts]) => ({
-      label: new Date(posts[0].published_at || posts[0].created_at).toLocaleDateString("en-US", {
+    .map(([, entries]) => ({
+      label: new Date(entries[0].published_at || entries[0].created_at).toLocaleDateString("en-US", {
         year: "numeric",
         month: "long",
       }),
-      posts,
+      entries,
     }));
 }
 
@@ -82,49 +78,38 @@ function formatShortDate(dateStr: string): string {
 }
 
 export function ChangelogList() {
-  const [posts, setPosts] = useState<Post[]>([]);
+  const [entries, setEntries] = useState<ChangelogEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<FilterType>("all");
 
   useEffect(() => {
-    async function fetchPosts() {
+    async function fetchEntries() {
       try {
         const supabase = getBrowserClient();
         const { data, error } = await supabase
-          .from("posts")
+          .from("changelog_entries")
           .select("*")
           .eq("published", true)
           .order("published_at", { ascending: false });
 
         if (error) throw error;
 
-        const changelogPosts = (data || []).filter((post: Post) => {
-          const postType = (post.type || "").toLowerCase();
-          return (
-            postType.includes("release") ||
-            postType.includes("update") ||
-            postType.includes("changelog") ||
-            postType.includes("feature") ||
-            postType.includes("fix")
-          );
-        });
-
-        setPosts(changelogPosts);
+        setEntries(data || []);
       } catch (err) {
-        console.error("Failed to fetch changelog posts:", err);
+        console.error("Failed to fetch changelog entries:", err);
       } finally {
         setLoading(false);
       }
     }
-    fetchPosts();
+    fetchEntries();
   }, []);
 
-  const filteredPosts =
+  const filteredEntries =
     activeFilter === "all"
-      ? posts
-      : posts.filter((post) => matchesFilter(post, activeFilter));
+      ? entries
+      : entries.filter((entry) => matchesFilter(entry, activeFilter));
 
-  const grouped = groupByMonth(filteredPosts);
+  const grouped = groupByMonth(filteredEntries);
 
   if (loading) {
     return (
@@ -173,7 +158,7 @@ export function ChangelogList() {
         ))}
       </div>
 
-      {filteredPosts.length === 0 ? (
+      {filteredEntries.length === 0 ? (
         <div className="text-center py-16">
           <ScrollText className="w-12 h-12 text-muted-foreground/40 mx-auto mb-4" />
           <p className="text-muted-foreground">
@@ -186,12 +171,12 @@ export function ChangelogList() {
             <div key={group.label}>
               <h2 className="text-lg font-semibold text-muted-foreground mb-6">{group.label}</h2>
               <div className="relative pl-8 border-l-2 border-border space-y-8">
-                {group.posts.map((post) => {
-                  const badge = getTagBadge(post);
+                {group.entries.map((entry) => {
+                  const badge = getTagBadge(entry);
                   const summary =
-                    post.excerpt || post.content.slice(0, 150).replace(/[#*_`]/g, "").trim();
+                    entry.content.slice(0, 150).replace(/[#*_`]/g, "").trim();
                   return (
-                    <div key={post.id} className="relative">
+                    <div key={entry.id} className="relative">
                       <div className="absolute -left-[calc(2rem+5px)] top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-background" />
                       <div>
                         <div className="flex items-center gap-3 mb-1">
@@ -204,18 +189,18 @@ export function ChangelogList() {
                             {badge.label}
                           </span>
                           <span className="text-sm text-muted-foreground">
-                            {formatShortDate(post.published_at || post.created_at)}
+                            {formatShortDate(entry.published_at || entry.created_at)}
                           </span>
                         </div>
                         <Link
-                          href={`/blog/${post.slug}`}
+                          href={`/blog/${entry.slug}`}
                           className="text-lg font-semibold hover:text-primary transition-colors"
                         >
-                          {post.title}
+                          {entry.title}
                         </Link>
                         <p className="text-muted-foreground text-sm mt-1 leading-relaxed">
                           {summary}
-                          {post.content.length > 150 && "..."}
+                          {entry.content.length > 150 && "..."}
                         </p>
                       </div>
                     </div>

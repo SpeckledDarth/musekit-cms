@@ -1,4 +1,4 @@
-export { BlogList, BlogPost, BlogEditor, BlogAdmin, ChangelogList } from "./blog";
+export { BlogList, BlogPost, BlogEditor, BlogAdmin, ChangelogList, ChangelogAdmin } from "./blog";
 
 export {
   HeroSection,

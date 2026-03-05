@@ -41,8 +41,26 @@ export function BlogPost({ slug }: BlogPostProps) {
           .eq("published", true)
           .single();
 
-        if (error) throw error;
-        setPost(data);
+        if (data && !error) {
+          setPost(data);
+          return;
+        }
+
+        const { data: changelogData, error: changelogError } = await supabase
+          .from("changelog_entries")
+          .select("*")
+          .eq("slug", slug)
+          .eq("published", true)
+          .single();
+
+        if (changelogError) throw changelogError;
+        if (changelogData) {
+          setPost({
+            ...changelogData,
+            type: "changelog",
+            author_id: "",
+          });
+        }
       } catch (err) {
         console.error("Failed to fetch post:", err);
       } finally {

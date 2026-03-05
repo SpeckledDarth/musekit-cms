@@ -11,6 +11,7 @@ Content management system for the MuseKit SaaS platform. Built with Next.js 14.2
 
 ## Database Tables
 - `posts` — Blog posts, custom pages, features (columns: id, type, title, slug, excerpt, content, author_id, published, published_at, created_at, updated_at)
+- `changelog_entries` — Changelog entries (columns: id, title, slug, content, category, published, published_at, created_at, updated_at)
 - `waitlist_entries` — Waitlist signups
 - `feedback` — NPS/feedback submissions
 - `settings` — Key-value settings (columns: id, key, value — no updated_at)
@@ -27,7 +28,7 @@ app/                    # Next.js App Router pages
 ├── robots.ts           # Auto-generated robots.txt
 └── components/         # App-level components (Navigation)
 src/                    # Reusable CMS components
-├── blog/               # BlogList, BlogPost, BlogEditor, BlogAdmin, ChangelogList
+├── blog/               # BlogList, BlogPost, BlogEditor, BlogAdmin, ChangelogList, ChangelogAdmin
 ├── landing/            # 14 landing sections + LandingPageBuilder + default-config
 ├── legal/              # 9 legal pages with LegalPageLayout
 ├── marketing/          # WaitlistForm, FeedbackWidget, SEOHead, etc.

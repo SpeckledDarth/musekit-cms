@@ -3,3 +3,4 @@ export { BlogPost } from "./BlogPost";
 export { BlogEditor } from "./BlogEditor";
 export { BlogAdmin } from "./BlogAdmin";
 export { ChangelogList } from "./ChangelogList";
+export { ChangelogAdmin } from "./ChangelogAdmin";
