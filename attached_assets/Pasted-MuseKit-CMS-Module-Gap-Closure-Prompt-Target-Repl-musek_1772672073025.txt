@@ -1,0 +1,164 @@
+MuseKit CMS Module — Gap Closure Prompt
+Target Repl: musekit-cms (isolated CMS module Repl) Package: packages/cms/ Stack: React 18, TypeScript, Tailwind CSS v3, Supabase, Next.js (App Router compatible — use "use client" directives, next/navigation not next/router) GitHub: SpeckledDarth/musekit-cms (to be created)
+
+Existing Code Context
+Before starting, understand what already exists in this package:
+
+Blog Components (src/blog/)
+BlogList — Fetches published posts from content_posts table via Supabase, renders as cards with category filter buttons. Uses getBrowserClient() from src/lib/supabase.ts.
+BlogPost — Displays a single post by slug with react-markdown and remark-gfm.
+BlogAdmin — Admin CRUD for blog posts (list, create, edit, delete, publish/unpublish).
+BlogEditor — Markdown editor with title, category, tags (comma-separated), Write/Preview tabs.
+Exported via src/blog/index.ts.
+Post Data Model
+Posts are stored in the content_posts Supabase table:
+
+interface Post {
+  id: string;
+  title: string;
+  slug: string;
+  content: string;       // Markdown
+  status: string;        // 'published' | 'draft'
+  author_id: string;
+  published_at: string | null;
+  created_at: string;
+  category?: string;     // e.g., "Product Updates", "Engineering", "Release"
+  tags?: string[];       // e.g., ["release", "feature", "update", "fix"]
+  excerpt?: string;
+}
+Landing Page Components (src/landing/)
+LandingPageBuilder — Accepts sections: SectionConfig[], renders enabled sections sorted by sortOrder.
+13 section components: HeroSection, LogoMarquee, AnimatedCounters, FeatureCards, TestimonialCarousel, ProcessSteps, FAQSection, FounderLetter, ComparisonBars, ScreenshotShowcase, BottomHeroCTA, ImageCollage, ImageTextBlocks.
+Exported via barrel in src/index.ts.
+SectionConfig Interface
+export interface SectionConfig {
+  type: string;           // Maps to a section component (e.g., "hero", "feature-cards")
+  enabled: boolean;
+  sortOrder: number;
+  backgroundColor?: string;
+  props: Record<string, any>;  // Passed directly to the section component
+}
+Section Component Props (key ones)
+// HeroSection
+interface HeroSectionProps {
+  style?: "full-width" | "split" | "video" | "pattern" | "floating-mockup" | "photo-collage";
+  headline: string;
+  subheadline?: string;
+  ctaText?: string;
+  ctaLink?: string;
+  secondaryCtaText?: string;
+  secondaryCtaLink?: string;
+}
+// FeatureCards
+interface FeatureCardsProps {
+  title?: string;
+  subtitle?: string;
+  features: Array<{ icon: string; title: string; description: string }>;
+  columns?: 2 | 3 | 4;
+}
+// TestimonialCarousel — takes testimonials array
+// ProcessSteps — takes steps array
+// FAQSection — takes faqs array
+// BottomHeroCTA — takes headline, subheadline, ctaText, ctaLink
+Supabase Client (src/lib/supabase.ts)
+Provides getBrowserClient() which returns a Supabase client (or null if env vars missing). Used by BlogList and BlogPost for data fetching.
+
+Utilities (src/lib/utils.ts)
+cn() (class merge), formatDate(), slugify(), replaceVariables().
+
+Package Barrel (src/index.ts)
+Exports all blog, landing, legal, marketing, and custom page components plus utilities and Supabase clients.
+
+Deliverable 1: ChangelogList Component (#11) — HIGH
+File to create: src/blog/ChangelogList.tsx Also update: src/blog/index.ts (add export), src/index.ts (add export)
+
+What It Does
+A timeline-style changelog page component that fetches blog posts filtered by changelog-relevant categories/tags and displays them in a clean timeline format.
+
+Requirements
+Data fetching:
+
+Query content_posts table for published posts
+Filter by category OR tags that indicate changelog content (e.g., category in ["Release", "Product Updates", "Changelog"] or tags containing "release", "update", "feature", "fix")
+Order by published_at descending
+Use getBrowserClient() from ../lib/supabase (same pattern as BlogList)
+Filter UI:
+
+Filter buttons at top: All, Releases, Updates, Features, Fixes
+Clicking a filter shows only posts with the matching tag
+"All" shows everything
+Timeline Layout:
+
+Group posts by month/year (e.g., "March 2026", "February 2026")
+Each month gets a date header
+Posts within a month shown as timeline entries with a vertical line connecting them
+Each Entry Shows:
+
+Tag badge (colored: Release = blue, Update = green, Feature = purple, Fix = orange)
+Date (formatted, e.g., "Mar 4, 2026")
+Title (as a link to /blog/${slug} for the full post)
+Excerpt or first ~150 chars of content as summary
+Clean, minimal design using Tailwind CSS v3
+Empty State:
+
+When no changelog posts exist, show a friendly message: "No changelog entries yet. Check back soon for updates."
+Use a centered layout with a muted icon (e.g., a scroll or document icon if lucide-react is available, or just text)
+Component Signature:
+
+export function ChangelogList(): JSX.Element
+No props needed — it fetches its own data (same pattern as BlogList)
+Must have "use client" directive at top
+Reference Pattern
+Follow the same structure as BlogList.tsx:
+
+useState for posts, loading, selected filter
+useEffect for data fetching with Supabase query
+Skeleton loading state while fetching
+Graceful fallback if Supabase client is null
+Tag Badge Colors
+release  → blue    (bg-blue-100 text-blue-800)
+update   → green   (bg-green-100 text-green-800)
+feature  → purple  (bg-purple-100 text-purple-800)
+fix      → orange  (bg-orange-100 text-orange-800)
+default  → gray    (bg-gray-100 text-gray-800)
+Deliverable 2: Default Landing Page Configuration (#15) — MEDIUM
+File to create: src/landing/default-config.ts Also update: src/landing/index.ts (if separate from main index), src/index.ts (add export)
+
+What It Does
+Exports a default SectionConfig[] array that the integration Repl can pass to LandingPageBuilder to render a complete landing page without any admin configuration.
+
+Requirements
+Export a constant:
+
+export const defaultLandingConfig: SectionConfig[] = [...]
+Include these sections in order:
+
+hero (sortOrder: 1) — headline: "Build Your SaaS Faster", subheadline about MuseKit being a complete starter, CTA: "Get Started" → "/signup", secondary CTA: "Learn More" → "/features"
+feature-cards (sortOrder: 2) — 6 features covering: Auth & Users, Billing & Subscriptions, Admin Dashboard, Email System, AI Integration, Blog & CMS. Each with an appropriate lucide icon name and short description.
+process-steps (sortOrder: 3) — 4 steps: Clone the repo, Configure your settings, Customize the design, Launch your product
+testimonial-carousel (sortOrder: 4) — 3 placeholder testimonials with realistic names, roles, companies, and quotes about the platform
+faq (sortOrder: 5) — 5 FAQs about: What is MuseKit?, What tech stack?, How to customize?, Is it production-ready?, What support is included?
+bottom-hero-cta (sortOrder: 6) — headline: "Ready to Launch?", subheadline about getting started today, CTA: "Start Building" → "/signup"
+All sections have enabled: true.
+
+Props must match the actual section component interfaces. Check each component's props interface in src/landing/ to ensure the props object is valid.
+
+Content should be realistic and professional — not lorem ipsum. This is what users see when they first visit the site.
+
+Also Export a Helper Function
+export function getLandingConfig(): SectionConfig[] {
+  // In the future, this could fetch config from admin settings via API
+  // For now, returns the default config
+  return defaultLandingConfig;
+}
+Acceptance Criteria
+ChangelogList component renders a timeline of filtered blog posts
+ChangelogList handles empty state gracefully
+ChangelogList is exported from src/blog/index.ts and src/index.ts
+defaultLandingConfig provides a complete, valid section configuration
+getLandingConfig() is exported from src/index.ts
+All files have "use client" directive where needed (components only, not config files)
+No new npm dependencies beyond what already exists
+TypeScript compiles without errors
+All imports use relative paths (no @/ aliases)
+Navigation uses next/navigation (not next/router) if any router access is needed
