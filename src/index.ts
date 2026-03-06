@@ -38,7 +38,8 @@ export {
 
 export { CustomPage, CustomPageEditor } from "./custom-pages";
 
-export { MediaLibrary, MediaPicker } from "./media";
+export { MediaLibrary, MediaPicker, ImageUpload, uploadFile, listFiles, deleteFile } from "./media";
+export type { StorageFile } from "./media";
 
 export { PageErrorBoundary } from "./components";
 

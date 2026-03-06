@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect } from "react";
-import { AlertTriangle, RefreshCw, Home } from "lucide-react";
 
 export default function GlobalError({
   error,
@@ -14,34 +13,34 @@ export default function GlobalError({
     console.error("Unhandled error:", error);
   }, [error]);
 
+  const isDev = process.env.NODE_ENV === "development";
+
   return (
-    <div className="min-h-[60vh] flex items-center justify-center px-4">
-      <div className="max-w-md w-full text-center space-y-6">
-        <div className="flex justify-center">
-          <div className="w-16 h-16 rounded-full bg-red-900/30 flex items-center justify-center">
-            <AlertTriangle className="w-8 h-8 text-red-400" />
-          </div>
-        </div>
-        <div className="space-y-2">
-          <h1 className="text-2xl font-bold text-white">Something went wrong</h1>
-          <p className="text-zinc-400">
-            An unexpected error occurred. You can try again or go back to the homepage.
-          </p>
-        </div>
-        <div className="flex items-center justify-center gap-3">
+    <div className="min-h-[60vh] flex items-center justify-center p-8 bg-background text-foreground">
+      <div className="text-center max-w-lg">
+        <p className="text-lg font-bold text-primary mb-6">MuseKit</p>
+        <h1 className="text-2xl font-bold mb-2">Something went wrong</h1>
+        <p className="text-muted-foreground mb-6">
+          An unexpected error occurred. Please try again.
+        </p>
+        {isDev && error && (
+          <pre className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 p-4 rounded-lg text-xs text-left overflow-auto mb-6 whitespace-pre-wrap break-words border border-red-200 dark:border-red-800">
+            {error.message}
+            {error.stack && `\n\n${error.stack}`}
+          </pre>
+        )}
+        <div className="flex gap-4 justify-center">
           <button
             onClick={reset}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg transition-colors text-sm font-medium"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity"
           >
-            <RefreshCw className="w-4 h-4" />
-            Try again
+            Try Again
           </button>
           <a
             href="/"
-            className="inline-flex items-center gap-2 px-4 py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-lg transition-colors text-sm font-medium"
+            className="px-6 py-2 bg-muted text-foreground border border-border rounded-md font-medium hover:bg-muted/80 transition-colors no-underline"
           >
-            <Home className="w-4 h-4" />
-            Go home
+            Go Home
           </a>
         </div>
       </div>
