@@ -14,7 +14,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   const { data: post } = await supabase
     .from("posts")
-    .select("title, seo_title, excerpt, content, published_at, updated_at, created_at, cover_image")
+    .select("title, excerpt, content, published_at, updated_at, created_at")
     .eq("slug", params.slug)
     .eq("published", true)
     .single();
@@ -26,9 +26,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       {
         slug: params.slug,
         title: post.title,
-        seo_title: post.seo_title,
         excerpt: post.excerpt || post.content?.replace(/[#*_`\n]/g, "").slice(0, 160).trim(),
-        cover_image: post.cover_image,
         published_at: post.published_at,
         updated_at: post.updated_at,
         created_at: post.created_at,
@@ -40,7 +38,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
     const { data: changelog } = await supabase
       .from("changelog_entries")
       .select("title, content, published_at, updated_at, created_at")
-      .eq("slug", params.slug)
+      .eq("id", params.slug)
       .eq("published", true)
       .single();
 
