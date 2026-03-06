@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from "react";
 import { getBrowserClient } from "../lib/supabase";
-import { formatDate, slugify } from "../lib/utils";
+import { formatDate } from "../lib/utils";
 import { cn } from "../lib/utils";
 import { useToast } from "../lib/toast";
 import { RelativeTime } from "../lib/RelativeTime";
@@ -30,7 +30,7 @@ import {
 interface ChangelogEntry {
   id: string;
   title: string;
-  slug: string;
+  version: string;
   content: string;
   category: string;
   published: boolean;
@@ -75,6 +75,7 @@ export function ChangelogAdmin() {
   const [saving, setSaving] = useState(false);
 
   const [formTitle, setFormTitle] = useState("");
+  const [formVersion, setFormVersion] = useState("");
   const [formContent, setFormContent] = useState("");
   const [formCategory, setFormCategory] = useState<string>("update");
   const [activeTab, setActiveTab] = useState<"write" | "preview">("write");
@@ -187,6 +188,7 @@ export function ChangelogAdmin() {
 
   function startCreate() {
     setFormTitle("");
+    setFormVersion("");
     setFormContent("");
     setFormCategory("update");
     setActiveTab("write");
@@ -198,6 +200,7 @@ export function ChangelogAdmin() {
 
   function startEdit(entry: ChangelogEntry) {
     setFormTitle(entry.title);
+    setFormVersion(entry.version || "");
     setFormContent(entry.content);
     setFormCategory(entry.category || "update");
     setActiveTab("write");
@@ -215,8 +218,8 @@ export function ChangelogAdmin() {
   }
 
   function exportCSV() {
-    const csv = ["Title,Slug,Category,Status,Created", ...filteredAndSorted.map(e =>
-      [e.title, e.slug, e.category, e.published ? "Published" : "Draft", e.created_at].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")
+    const csv = ["Title,Version,Category,Status,Created", ...filteredAndSorted.map(e =>
+      [e.title, e.version, e.category, e.published ? "Published" : "Draft", e.created_at].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")
     )].join("\n");
     const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
@@ -238,7 +241,7 @@ export function ChangelogAdmin() {
       if (mode === "create") {
         const { error } = await supabase.from("changelog_entries").insert({
           title: formTitle,
-          slug: slugify(formTitle),
+          version: formVersion,
           content: formContent,
           category: formCategory,
           published: false,
@@ -251,7 +254,7 @@ export function ChangelogAdmin() {
           .from("changelog_entries")
           .update({
             title: formTitle,
-            slug: slugify(formTitle),
+            version: formVersion,
             content: formContent,
             category: formCategory,
           })
@@ -381,18 +384,30 @@ export function ChangelogAdmin() {
             {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
           </div>
 
-          <div>
-            <label className="text-sm font-medium text-muted-foreground mb-1 block">Category</label>
-            <select
-              value={formCategory}
-              onChange={(e) => setFormCategory(e.target.value)}
-              className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-            >
-              <option value="release">Release</option>
-              <option value="update">Update</option>
-              <option value="feature">Feature</option>
-              <option value="fix">Fix</option>
-            </select>
+          <div className="flex gap-4">
+            <div className="flex-1">
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Version</label>
+              <input
+                type="text"
+                value={formVersion}
+                onChange={(e) => { setFormVersion(e.target.value); setIsDirty(true); }}
+                placeholder="e.g. 1.2.0"
+                className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-muted-foreground mb-1 block">Category</label>
+              <select
+                value={formCategory}
+                onChange={(e) => setFormCategory(e.target.value)}
+                className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                <option value="release">Release</option>
+                <option value="update">Update</option>
+                <option value="feature">Feature</option>
+                <option value="fix">Fix</option>
+              </select>
+            </div>
           </div>
 
           <div className="border border-border rounded-lg overflow-hidden">

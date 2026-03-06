@@ -9,7 +9,7 @@ import { ScrollText } from "lucide-react";
 interface ChangelogEntry {
   id: string;
   title: string;
-  slug: string;
+  version: string;
   content: string;
   category: string;
   published: boolean;
@@ -193,7 +193,7 @@ export function ChangelogList() {
                           </span>
                         </div>
                         <Link
-                          href={`/blog/${entry.slug}`}
+                          href={`/blog/${entry.id}`}
                           className="text-lg font-semibold hover:text-primary transition-colors"
                         >
                           {entry.title}

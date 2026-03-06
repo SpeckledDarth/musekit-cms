@@ -10,14 +10,14 @@ Content management system for the MuseKit SaaS platform. Built with Next.js 14.2
 - **Storage**: Supabase Storage (`media` bucket for uploaded images)
 - **Styling**: Tailwind CSS v3 with CSS custom properties for theming
 
-## Database Tables
-- `posts` — Blog posts, custom pages, features (columns: id, type, title, slug, excerpt, content, author_id, published, published_at, created_at, updated_at, seo_title, cover_image)
-- `changelog_entries` — Changelog entries (columns: id, title, slug, content, category, published, published_at, created_at, updated_at)
-- `waitlist_entries` — Waitlist signups
-- `feedback` — NPS/feedback submissions
-- `settings` — Key-value settings (columns: id, key, value — no updated_at). Branding keys: `branding.appName`, `branding.logoUrl`, `branding.faviconUrl`, `branding.description`
-- `site_pages` — Dynamic pages built from sections (columns: slug, title, status, sections JSONB, seo_title, seo_description, og_image, canonical_url, no_index, show_in_nav, sort_order, created_at, updated_at)
-- `audit_logs` — Audit trail for admin mutations (columns: id, action, entity, entity_id, user_id, details JSONB, created_at) — **must be created in Supabase**
+## Database Tables (verified against Supabase)
+- `posts` — Blog posts & custom pages (columns: id, type, title, slug, excerpt, content, author_id, published, published_at, created_at, updated_at)
+- `changelog_entries` — Changelog entries (columns: id (uuid), title, content, version, category, published, published_at, created_at, updated_at)
+- `waitlist_entries` — Waitlist signups (columns: id, email, name, referral_source, created_at)
+- `feedback` — NPS/feedback submissions (columns: id, user_id, email, message, page_url, status, created_at, nps_score)
+- `settings` — Key-value settings (columns: id, key, value). Branding keys: `branding.appName`, `branding.logoUrl`, `branding.faviconUrl`, `branding.description`
+- `audit_logs` — Audit trail for admin mutations (columns: id (uuid), user_id, action, details JSONB, ip_address, created_at). Entity/entity_id stored inside `details` JSONB.
+- `site_pages` — **Does NOT exist yet**. Required for DynamicPage, HomePageLoader, SiteNav, SEO metadata, and sitemap. Needs columns: slug, title, status, sections JSONB, seo_title, seo_description, og_image, canonical_url, no_index, show_in_nav, sort_order, created_at, updated_at.
 
 ## Project Structure
 ```

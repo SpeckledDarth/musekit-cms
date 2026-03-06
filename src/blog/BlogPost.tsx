@@ -46,14 +46,13 @@ export function BlogPost({ slug }: BlogPostProps) {
           return;
         }
 
-        const { data: changelogData, error: changelogError } = await supabase
+        const { data: changelogData } = await supabase
           .from("changelog_entries")
           .select("*")
-          .eq("slug", slug)
+          .eq("id", slug)
           .eq("published", true)
           .single();
 
-        if (changelogError) throw changelogError;
         if (changelogData) {
           setPost({
             ...changelogData,

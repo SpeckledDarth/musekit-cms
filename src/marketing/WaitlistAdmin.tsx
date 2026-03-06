@@ -13,10 +13,12 @@ import { Download, RefreshCw, Search, ChevronUp, ChevronDown, Plus, Trash2, X, U
 interface WaitlistEntry {
   id: string;
   email: string;
+  name: string | null;
+  referral_source: string | null;
   created_at: string;
 }
 
-type SortField = "email" | "created_at";
+type SortField = "email" | "name" | "created_at";
 type SortDirection = "asc" | "desc";
 
 export function WaitlistAdmin() {
@@ -28,6 +30,7 @@ export function WaitlistAdmin() {
   const [sortDirection, setSortDirection] = useState<SortDirection>(getParam("dir", "desc") as SortDirection);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEmail, setNewEmail] = useState("");
+  const [newName, setNewName] = useState("");
   const [addingEntry, setAddingEntry] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -67,13 +70,15 @@ export function WaitlistAdmin() {
 
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
-      result = result.filter((e) => e.email.toLowerCase().includes(q));
+      result = result.filter((e) => e.email.toLowerCase().includes(q) || (e.name && e.name.toLowerCase().includes(q)));
     }
 
     result = [...result].sort((a, b) => {
       let comparison = 0;
       if (sortField === "email") {
         comparison = a.email.localeCompare(b.email);
+      } else if (sortField === "name") {
+        comparison = (a.name || "").localeCompare(b.name || "");
       } else {
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime();
       }
@@ -120,10 +125,11 @@ export function WaitlistAdmin() {
       const supabase = getBrowserClient();
       const { error } = await supabase
         .from("waitlist_entries")
-        .insert({ email: newEmail.trim() });
+        .insert({ email: newEmail.trim(), name: newName.trim() || null, referral_source: "manual" });
       if (error) throw error;
       auditLog({ action: "create", entity: "waitlist_entry", details: { email: newEmail.trim() } });
       setNewEmail("");
+      setNewName("");
       setEmailError("");
       setShowAddForm(false);
       success("Entry added to waitlist");
@@ -199,8 +205,10 @@ export function WaitlistAdmin() {
 
   function exportCSV() {
     const csv = [
-      "Email,Signed Up",
-      ...filteredAndSortedEntries.map((e) => `${e.email},${e.created_at}`),
+      "Name,Email,Referral Source,Signed Up",
+      ...filteredAndSortedEntries.map((e) =>
+        [e.name || "", e.email, e.referral_source || "", e.created_at].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")
+      ),
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -250,6 +258,16 @@ export function WaitlistAdmin() {
       {showAddForm && (
         <div className="mb-4 p-4 border border-border rounded-lg bg-muted/30">
           <div className="flex items-center gap-2">
+            <label htmlFor="waitlist-add-name" className="sr-only">Name</label>
+            <input
+              id="waitlist-add-name"
+              type="text"
+              value={newName}
+              onChange={(e) => setNewName(e.target.value)}
+              placeholder="Name (optional)"
+              className="w-40 px-3 py-2 border border-border rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              autoFocus
+            />
             <label htmlFor="waitlist-add-email" className="sr-only">Email address</label>
             <input
               id="waitlist-add-email"
@@ -259,7 +277,6 @@ export function WaitlistAdmin() {
               onKeyDown={(e) => e.key === "Enter" && handleAddEntry()}
               placeholder="Enter email address..."
               className="flex-1 px-3 py-2 border border-border rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
-              autoFocus
             />
             <button
               onClick={handleAddEntry}
@@ -269,7 +286,7 @@ export function WaitlistAdmin() {
               {addingEntry ? "Adding..." : "Add"}
             </button>
             <button
-              onClick={() => { setShowAddForm(false); setNewEmail(""); setEmailError(""); }}
+              onClick={() => { setShowAddForm(false); setNewEmail(""); setNewName(""); setEmailError(""); }}
               className="p-2 hover:bg-muted rounded-md transition-colors"
               aria-label="Close add form"
             >
@@ -289,7 +306,7 @@ export function WaitlistAdmin() {
             type="text"
             value={searchQuery}
             onChange={(e) => { setSearchQuery(e.target.value); setParams({ q: e.target.value, page: null }); }}
-            placeholder="Search by email..."
+            placeholder="Search by name or email..."
             className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
@@ -339,7 +356,7 @@ export function WaitlistAdmin() {
       ) : (
         <>
           <div className="border border-border rounded-lg overflow-x-auto">
-            <table className="w-full min-w-[500px]">
+            <table className="w-full min-w-[700px]">
               <thead>
                 <tr className="bg-muted/50">
                   <th className="w-10 px-3 py-3">
@@ -352,6 +369,15 @@ export function WaitlistAdmin() {
                     />
                   </th>
                   <th
+                    onClick={() => handleSort("name")}
+                    className="group text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Name
+                      <SortIndicator field="name" />
+                    </span>
+                  </th>
+                  <th
                     onClick={() => handleSort("email")}
                     className="group text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
                   >
@@ -359,6 +385,9 @@ export function WaitlistAdmin() {
                       Email
                       <SortIndicator field="email" />
                     </span>
+                  </th>
+                  <th className="text-left px-4 py-3 text-sm font-medium text-muted-foreground select-none">
+                    Source
                   </th>
                   <th
                     onClick={() => handleSort("created_at")}
@@ -384,7 +413,9 @@ export function WaitlistAdmin() {
                         className="rounded border-border"
                       />
                     </td>
+                    <td className="px-4 py-3 text-sm">{entry.name || <span className="text-muted-foreground">—</span>}</td>
                     <td className="px-4 py-3 text-sm">{entry.email}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground capitalize">{entry.referral_source || "—"}</td>
                     <td className="px-4 py-3 text-sm text-muted-foreground">
                       <RelativeTime date={entry.created_at} />
                     </td>

@@ -66,12 +66,12 @@ export async function generateSitemap(baseUrl: string): Promise<SitemapEntry[]> 
 
   const { data: changelogEntries } = await supabase
     .from("changelog_entries")
-    .select("slug, updated_at, created_at")
+    .select("id, updated_at, created_at")
     .eq("published", true)
     .order("created_at", { ascending: false });
 
   const changelogSitemapEntries: SitemapEntry[] = (changelogEntries || []).map((entry: any) => ({
-    url: `${baseUrl}/blog/${entry.slug}`,
+    url: `${baseUrl}/blog/${entry.id}`,
     lastModified: entry.updated_at ? new Date(entry.updated_at) : new Date(entry.created_at),
     changeFrequency: "monthly" as const,
     priority: 0.6,

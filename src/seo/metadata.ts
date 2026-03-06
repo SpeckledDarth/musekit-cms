@@ -134,13 +134,13 @@ export async function getBlogPostMetadata(slug: string): Promise<Metadata> {
 
   const { data: post } = await supabase
     .from("posts")
-    .select("title, seo_title, excerpt, cover_image, slug")
+    .select("title, excerpt, slug")
     .eq("slug", slug)
     .eq("published", true)
     .single();
 
   if (post) {
-    const title = post.seo_title || post.title;
+    const title = post.title;
     const description = post.excerpt || brand.description;
     return {
       title: buildTitle(title, brand.appName),
@@ -149,13 +149,11 @@ export async function getBlogPostMetadata(slug: string): Promise<Metadata> {
         title: buildTitle(title, brand.appName),
         description,
         type: "article",
-        ...(post.cover_image && { images: [{ url: post.cover_image }] }),
       },
       twitter: {
-        card: post.cover_image ? "summary_large_image" : "summary",
+        card: "summary",
         title: buildTitle(title, brand.appName),
         description,
-        ...(post.cover_image && { images: [post.cover_image] }),
       },
       robots: { index: true, follow: true },
       icons: { icon: brand.faviconUrl },
@@ -165,7 +163,7 @@ export async function getBlogPostMetadata(slug: string): Promise<Metadata> {
   const { data: changelog } = await supabase
     .from("changelog_entries")
     .select("title, content")
-    .eq("slug", slug)
+    .eq("id", slug)
     .eq("published", true)
     .single();
 

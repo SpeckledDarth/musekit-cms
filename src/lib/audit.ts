@@ -11,14 +11,17 @@ interface AuditLogEntry {
 export function auditLog({ action, entity, entityId, userId, details }: AuditLogEntry): void {
   try {
     const supabase = getBrowserClient();
+    const mergedDetails: Record<string, unknown> = {
+      entity,
+      ...(entityId ? { entity_id: entityId } : {}),
+      ...(details || {}),
+    };
     supabase
       .from("audit_logs")
       .insert({
         action,
-        entity,
-        entity_id: entityId || null,
         user_id: userId || null,
-        details: details || null,
+        details: mergedDetails,
       })
       .then(({ error }) => {
         if (error) {
