@@ -34,6 +34,11 @@ export function SiteNav({ className }: SiteNavProps) {
         if (!cancelled) {
           setLoaded(true);
         }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setLoaded(true);
+        }
       });
 
     return () => {

@@ -56,12 +56,17 @@ export async function getPageMetadata(slug: string): Promise<Metadata> {
   const brand = await getBrandSettings();
   const supabase = getSupabaseClient();
 
-  const { data: page } = await supabase
-    .from("site_pages")
-    .select("title, seo_title, seo_description, og_image, canonical_url, no_index")
-    .eq("slug", slug)
-    .eq("status", "published")
-    .single();
+  let page: any = null;
+  try {
+    const { data } = await supabase
+      .from("site_pages")
+      .select("title, seo_title, seo_description, og_image, canonical_url, no_index")
+      .eq("slug", slug)
+      .eq("status", "published")
+      .single();
+    page = data;
+  } catch {
+  }
 
   const title = page?.seo_title || page?.title || slug;
   const description = page?.seo_description || brand.description;
@@ -95,12 +100,17 @@ export async function getHomePageMetadata(): Promise<Metadata> {
   const brand = await getBrandSettings();
   const supabase = getSupabaseClient();
 
-  const { data: page } = await supabase
-    .from("site_pages")
-    .select("title, seo_title, seo_description, og_image, canonical_url")
-    .eq("slug", "home")
-    .eq("status", "published")
-    .single();
+  let page: any = null;
+  try {
+    const { data } = await supabase
+      .from("site_pages")
+      .select("title, seo_title, seo_description, og_image, canonical_url")
+      .eq("slug", "home")
+      .eq("status", "published")
+      .single();
+    page = data;
+  } catch {
+  }
 
   const title = page?.seo_title || page?.title || brand.appName;
   const description = page?.seo_description || brand.description;

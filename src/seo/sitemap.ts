@@ -36,20 +36,24 @@ export async function generateSitemap(baseUrl: string): Promise<SitemapEntry[]> 
     priority: 0.2,
   }));
 
-  const { data: sitePages } = await supabase
-    .from("site_pages")
-    .select("slug, updated_at, created_at")
-    .eq("status", "published")
-    .eq("no_index", false);
+  let dynamicPageEntries: SitemapEntry[] = [];
+  try {
+    const { data: sitePages } = await supabase
+      .from("site_pages")
+      .select("slug, updated_at, created_at")
+      .eq("status", "published")
+      .eq("no_index", false);
 
-  const dynamicPageEntries: SitemapEntry[] = (sitePages || [])
-    .filter((p: any) => p.slug !== "home")
-    .map((page: any) => ({
-      url: `${baseUrl}/${page.slug}`,
-      lastModified: page.updated_at ? new Date(page.updated_at) : new Date(page.created_at),
-      changeFrequency: "weekly" as const,
-      priority: 0.8,
-    }));
+    dynamicPageEntries = (sitePages || [])
+      .filter((p: any) => p.slug !== "home")
+      .map((page: any) => ({
+        url: `${baseUrl}/${page.slug}`,
+        lastModified: page.updated_at ? new Date(page.updated_at) : new Date(page.created_at),
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      }));
+  } catch {
+  }
 
   const { data: blogPosts } = await supabase
     .from("posts")
