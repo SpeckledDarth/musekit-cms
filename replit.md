@@ -1,12 +1,12 @@
 # MuseKit CMS
 
 ## Overview
-Content management system for the MuseKit SaaS platform. Built with Next.js 14.2.18, React 18.3.1, Tailwind CSS 3.4.x, and TypeScript in strict mode.
+CMS module (`@musekit/cms`) for the MuseKit SaaS platform. Part of a Turborepo monorepo. This Repl owns the CMS UI components and pages — it does NOT own the database schema (managed by `@musekit/database`).
 
 ## Architecture
 - **Framework**: Next.js 14 App Router
 - **Port**: 5000 (dev and production)
-- **Database**: Supabase (external)
+- **Database**: Supabase (external, schema managed by `@musekit/database` module)
 - **Storage**: Supabase Storage (`media` bucket for uploaded images)
 - **Styling**: Tailwind CSS v3 with CSS custom properties for theming
 
@@ -17,7 +17,7 @@ Content management system for the MuseKit SaaS platform. Built with Next.js 14.2
 - `feedback` — NPS/feedback submissions (columns: id, user_id, email, message, page_url, status, created_at, nps_score)
 - `settings` — Key-value settings (columns: id, key, value). Branding keys: `branding.appName`, `branding.logoUrl`, `branding.faviconUrl`, `branding.description`
 - `audit_logs` — Audit trail for admin mutations (columns: id (uuid), user_id, action, details JSONB, ip_address, created_at). Entity/entity_id stored inside `details` JSONB.
-- `site_pages` — **Does NOT exist yet**. Migration SQL ready at `supabase/migrations/001_create_site_pages.sql`. Required for DynamicPage, HomePageLoader, SiteNav, SEO metadata, and sitemap. Columns: id (uuid), slug, title, status, sections JSONB, seo_title, seo_description, og_image, canonical_url, no_index, show_in_nav, sort_order, created_at, updated_at.
+- `site_pages` — Dynamic pages (schema managed by `@musekit/database`). Expected columns: id (uuid), slug, title, status, sections JSONB, seo_title, seo_description, og_image, canonical_url, no_index, show_in_nav, sort_order, created_at, updated_at. Code handles table absence gracefully (empty nav, fallback homepage, default metadata).
 
 ## Project Structure
 ```
@@ -54,10 +54,7 @@ src/                    # Reusable CMS components
 ## Environment Secrets
 - `NEXT_PUBLIC_SUPABASE_URL` — Supabase URL
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` — Supabase anon key
-- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key (**currently a placeholder**, needs real JWT from Supabase dashboard)
-
-## Migrations
-- `supabase/migrations/001_create_site_pages.sql` — Creates `site_pages` table with RLS policies. Run in Supabase SQL Editor.
+- `SUPABASE_SERVICE_ROLE_KEY` — Supabase service role key
 
 ## Authentication
 - `src/lib/auth.tsx` — AuthProvider + useAuth hook using Supabase Auth (email/password)
