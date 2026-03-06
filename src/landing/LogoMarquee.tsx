@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface LogoMarqueeProps {
   logos: { src: string; alt: string }[];
   speed?: number;
@@ -32,12 +34,15 @@ export function LogoMarquee({
           style={{ animationDuration: `${speed}s` }}
         >
           {duplicatedLogos.map((logo, i) => (
-            <img
-              key={i}
-              src={logo.src}
-              alt={logo.alt}
-              className="h-8 md:h-10 object-contain opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0 flex-shrink-0"
-            />
+            <div key={i} className="relative h-8 md:h-10 w-24 md:w-32 flex-shrink-0">
+              <Image
+                src={logo.src}
+                alt={logo.alt}
+                fill
+                sizes="(max-width: 768px) 96px, 128px"
+                className="object-contain opacity-60 hover:opacity-100 transition-opacity grayscale hover:grayscale-0"
+              />
+            </div>
           ))}
         </div>
       </div>

@@ -47,15 +47,26 @@ export function LandingPageBuilder({ sections }: LandingPageBuilderProps) {
     .filter((s) => s.enabled)
     .sort((a, b) => a.sortOrder - b.sortOrder);
 
+  let heroCount = 0;
+
   return (
     <div>
       {sortedSections.map((section, i) => {
         const Component = sectionComponents[section.type];
         if (!Component) return null;
+
+        const extraProps: Record<string, any> = {};
+
+        if (section.type === "hero") {
+          heroCount++;
+          extraProps.headingLevel = heroCount === 1 ? "h1" : "h2";
+        }
+
         return (
           <Component
             key={i}
             {...section.props}
+            {...extraProps}
             backgroundColor={section.backgroundColor}
             enabled={section.enabled}
           />

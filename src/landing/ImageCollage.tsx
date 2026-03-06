@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface ImageCollageProps {
   images: { src: string; alt: string }[];
   backgroundColor?: string;
@@ -29,11 +31,15 @@ export function ImageCollage({
                   zIndex: i + 1,
                 }}
               >
-                <img
-                  src={img.src}
-                  alt={img.alt}
-                  className="w-full h-48 md:h-64 object-cover rounded-xl shadow-xl border-4 border-white dark:border-gray-800"
-                />
+                <div className="relative w-full h-48 md:h-64">
+                  <Image
+                    src={img.src}
+                    alt={img.alt}
+                    fill
+                    sizes="(max-width: 768px) 192px, 256px"
+                    className="object-cover rounded-xl shadow-xl border-4 border-white dark:border-gray-800"
+                  />
+                </div>
               </div>
             );
           })}

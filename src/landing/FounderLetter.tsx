@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface FounderLetterProps {
   portrait?: string;
   name: string;
@@ -27,14 +29,18 @@ export function FounderLetter({
         <div className="bg-card border border-border rounded-2xl p-8 md:p-12">
           <div className="flex items-center gap-4 mb-8">
             {portrait && (
-              <img
-                src={portrait}
-                alt={name}
-                className="w-16 h-16 rounded-full object-cover"
-              />
+              <div className="relative w-16 h-16 flex-shrink-0">
+                <Image
+                  src={portrait}
+                  alt={name}
+                  fill
+                  sizes="64px"
+                  className="rounded-full object-cover"
+                />
+              </div>
             )}
             <div>
-              <h3 className="font-semibold text-lg">{name}</h3>
+              <h2 className="font-semibold text-lg">{name}</h2>
               <p className="text-sm text-muted-foreground">{title}</p>
             </div>
           </div>
@@ -46,8 +52,14 @@ export function FounderLetter({
             ))}
           </div>
           {signature && (
-            <div className="mt-8">
-              <img src={signature} alt="Signature" className="h-12 dark:invert" />
+            <div className="mt-8 relative h-12 w-48">
+              <Image
+                src={signature}
+                alt="Signature"
+                fill
+                sizes="192px"
+                className="dark:invert object-contain object-left"
+              />
             </div>
           )}
         </div>

@@ -13,5 +13,8 @@ export { ImageCollage } from "./ImageCollage";
 export { ImageTextBlocks } from "./ImageTextBlocks";
 export { FeatureSubPage } from "./FeatureSubPage";
 export { LandingPageBuilder } from "./LandingPageBuilder";
+export { SiteNav } from "./SiteNav";
 export type { SectionConfig } from "./LandingPageBuilder";
+export { DynamicPage } from "./DynamicPage";
 export { defaultLandingConfig, getLandingConfig } from "./default-config";
+export { HomePageLoader } from "./HomePageLoader";

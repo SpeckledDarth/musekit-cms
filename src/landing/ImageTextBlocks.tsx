@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface Block {
   title: string;
   description: string;
@@ -35,11 +37,15 @@ export function ImageTextBlocks({
               <p className="text-muted-foreground leading-relaxed">{block.description}</p>
             </div>
             <div className={i % 2 === 1 ? "md:order-1" : ""}>
-              <img
-                src={block.image}
-                alt={block.imageAlt || block.title}
-                className="rounded-xl shadow-lg w-full"
-              />
+              <div className="relative w-full aspect-video">
+                <Image
+                  src={block.image}
+                  alt={block.imageAlt || block.title}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="rounded-xl shadow-lg object-cover"
+                />
+              </div>
             </div>
           </div>
         ))}

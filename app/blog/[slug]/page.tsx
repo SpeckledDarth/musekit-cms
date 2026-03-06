@@ -1,53 +1,11 @@
 import type { Metadata } from "next";
 import { BlogPost } from "@/src/blog";
 import { getSupabaseClient } from "@/src/lib/supabase";
-import { generateSEOMeta, generateJsonLd } from "@/src/marketing/SEOHead";
+import { getBlogPostMetadata } from "@/src/seo/metadata";
+import { getArticleSchema } from "@/src/seo/json-ld";
 
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://musekit.com";
-  const supabase = getSupabaseClient();
-
-  const { data: post } = await supabase
-    .from("posts")
-    .select("title, excerpt, content, published_at, updated_at")
-    .eq("slug", params.slug)
-    .eq("published", true)
-    .single();
-
-  if (post) {
-    const description = post.excerpt || post.content.replace(/[#*_`\n]/g, "").slice(0, 160).trim();
-    return generateSEOMeta({
-      title: `${post.title} — MuseKit`,
-      description,
-      url: `${baseUrl}/blog/${params.slug}`,
-      type: "article",
-      siteName: "MuseKit",
-    });
-  }
-
-  const { data: changelog } = await supabase
-    .from("changelog_entries")
-    .select("title, content")
-    .eq("slug", params.slug)
-    .eq("published", true)
-    .single();
-
-  if (changelog) {
-    const description = changelog.content.replace(/[#*_`\n]/g, "").slice(0, 160).trim();
-    return generateSEOMeta({
-      title: `${changelog.title} — MuseKit`,
-      description,
-      url: `${baseUrl}/blog/${params.slug}`,
-      type: "article",
-      siteName: "MuseKit",
-    });
-  }
-
-  return generateSEOMeta({
-    title: "Post Not Found — MuseKit",
-    description: "The requested post could not be found.",
-    noIndex: true,
-  });
+  return getBlogPostMetadata(params.slug);
 }
 
 export default async function BlogPostPage({ params }: { params: { slug: string } }) {
@@ -56,7 +14,7 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
 
   const { data: post } = await supabase
     .from("posts")
-    .select("title, excerpt, content, published_at, updated_at, created_at")
+    .select("title, seo_title, excerpt, content, published_at, updated_at, created_at, cover_image")
     .eq("slug", params.slug)
     .eq("published", true)
     .single();
@@ -64,14 +22,20 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
   let jsonLdScript: string | null = null;
 
   if (post) {
-    jsonLdScript = generateJsonLd({
-      "@type": "Article",
-      headline: post.title,
-      description: post.excerpt || post.content.replace(/[#*_`\n]/g, "").slice(0, 160).trim(),
-      datePublished: post.published_at || post.created_at,
-      dateModified: post.updated_at || post.published_at || post.created_at,
-      url: `${baseUrl}/blog/${params.slug}`,
-    });
+    const schema = getArticleSchema(
+      {
+        slug: params.slug,
+        title: post.title,
+        seo_title: post.seo_title,
+        excerpt: post.excerpt || post.content?.replace(/[#*_`\n]/g, "").slice(0, 160).trim(),
+        cover_image: post.cover_image,
+        published_at: post.published_at,
+        updated_at: post.updated_at,
+        created_at: post.created_at,
+      },
+      baseUrl
+    );
+    jsonLdScript = JSON.stringify(schema);
   } else {
     const { data: changelog } = await supabase
       .from("changelog_entries")
@@ -81,14 +45,18 @@ export default async function BlogPostPage({ params }: { params: { slug: string 
       .single();
 
     if (changelog) {
-      jsonLdScript = generateJsonLd({
-        "@type": "Article",
-        headline: changelog.title,
-        description: changelog.content.replace(/[#*_`\n]/g, "").slice(0, 160).trim(),
-        datePublished: changelog.published_at || changelog.created_at,
-        dateModified: changelog.updated_at || changelog.published_at || changelog.created_at,
-        url: `${baseUrl}/blog/${params.slug}`,
-      });
+      const schema = getArticleSchema(
+        {
+          slug: params.slug,
+          title: changelog.title,
+          excerpt: changelog.content?.replace(/[#*_`\n]/g, "").slice(0, 160).trim(),
+          published_at: changelog.published_at,
+          updated_at: changelog.updated_at,
+          created_at: changelog.created_at,
+        },
+        baseUrl
+      );
+      jsonLdScript = JSON.stringify(schema);
     }
   }
 

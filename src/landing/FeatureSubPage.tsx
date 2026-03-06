@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Image from "next/image";
 import { getBrowserClient } from "@/src/lib/supabase";
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
@@ -94,11 +95,16 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
       </header>
 
       {feature.heroImage && (
-        <img
-          src={feature.heroImage}
-          alt={feature.title}
-          className="rounded-xl shadow-2xl w-full mb-16"
-        />
+        <div className="relative w-full aspect-video mb-16">
+          <Image
+            src={feature.heroImage}
+            alt={feature.title}
+            fill
+            sizes="(max-width: 768px) 100vw, 1024px"
+            className="rounded-xl shadow-2xl object-cover"
+            priority
+          />
+        </div>
       )}
 
       <div className="space-y-20">
@@ -113,7 +119,15 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
             </div>
             {section.image && (
               <div className={i % 2 === 1 ? "md:order-1" : ""}>
-                <img src={section.image} alt={section.title} className="rounded-xl shadow-lg w-full" />
+                <div className="relative w-full aspect-video">
+                  <Image
+                    src={section.image}
+                    alt={section.title}
+                    fill
+                    sizes="(max-width: 768px) 100vw, 50vw"
+                    className="rounded-xl shadow-lg object-cover"
+                  />
+                </div>
               </div>
             )}
           </div>

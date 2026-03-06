@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ChevronLeft, ChevronRight, Quote } from "lucide-react";
 
 interface Testimonial {
@@ -40,11 +41,15 @@ export function TestimonialCarousel({
         </blockquote>
         <div className="flex items-center justify-center gap-3">
           {testimonial.avatar && (
-            <img
-              src={testimonial.avatar}
-              alt={testimonial.name}
-              className="w-12 h-12 rounded-full object-cover"
-            />
+            <div className="relative w-12 h-12 flex-shrink-0">
+              <Image
+                src={testimonial.avatar}
+                alt={testimonial.name}
+                fill
+                sizes="48px"
+                className="rounded-full object-cover"
+              />
+            </div>
           )}
           <div className="text-left">
             <p className="font-semibold">{testimonial.name}</p>
@@ -60,6 +65,7 @@ export function TestimonialCarousel({
             <button
               onClick={prev}
               className="p-2 rounded-full border border-border hover:bg-muted transition-colors"
+              aria-label="Previous testimonial"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
@@ -68,6 +74,7 @@ export function TestimonialCarousel({
                 <button
                   key={i}
                   onClick={() => setCurrent(i)}
+                  aria-label={`Go to testimonial ${i + 1}`}
                   className={`w-2 h-2 rounded-full transition-colors ${
                     i === current ? "bg-primary" : "bg-muted"
                   }`}
@@ -77,6 +84,7 @@ export function TestimonialCarousel({
             <button
               onClick={next}
               className="p-2 rounded-full border border-border hover:bg-muted transition-colors"
+              aria-label="Next testimonial"
             >
               <ChevronRight className="w-5 h-5" />
             </button>

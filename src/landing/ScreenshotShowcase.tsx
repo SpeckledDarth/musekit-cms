@@ -1,5 +1,7 @@
 "use client";
 
+import Image from "next/image";
+
 interface ScreenshotShowcaseProps {
   title?: string;
   subtitle?: string;
@@ -32,11 +34,15 @@ export function ScreenshotShowcase({
             {screenshots.map((screenshot, i) => (
               <div key={i} className="group relative">
                 <div className="overflow-hidden rounded-xl border border-border shadow-lg">
-                  <img
-                    src={screenshot.src}
-                    alt={screenshot.alt}
-                    className="w-full transition-transform duration-500 group-hover:scale-105"
-                  />
+                  <div className="relative w-full aspect-video">
+                    <Image
+                      src={screenshot.src}
+                      alt={screenshot.alt}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                      className="transition-transform duration-500 group-hover:scale-105 object-cover"
+                    />
+                  </div>
                 </div>
                 {screenshot.caption && (
                   <p className="text-sm text-muted-foreground text-center mt-3">{screenshot.caption}</p>

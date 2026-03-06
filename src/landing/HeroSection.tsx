@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { cn } from "@/src/lib/utils";
 
 type HeroStyle = "full-width" | "split" | "video" | "pattern" | "floating-mockup" | "photo-collage";
@@ -18,6 +19,7 @@ interface HeroSectionProps {
   images?: string[];
   backgroundColor?: string;
   enabled?: boolean;
+  headingLevel?: "h1" | "h2";
 }
 
 export function HeroSection({
@@ -34,8 +36,11 @@ export function HeroSection({
   images = [],
   backgroundColor,
   enabled = true,
+  headingLevel = "h1",
 }: HeroSectionProps) {
   if (!enabled) return null;
+
+  const Heading = headingLevel;
 
   const renderCTA = () => (
     <div className="flex flex-wrap gap-4 mt-8">
@@ -61,13 +66,22 @@ export function HeroSection({
       <section className="py-20 px-4" style={{ backgroundColor }}>
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight">{headline}</h1>
+            <Heading className="text-5xl md:text-6xl font-bold leading-tight">{headline}</Heading>
             {subheadline && <p className="text-xl text-muted-foreground mt-4">{subheadline}</p>}
             {renderCTA()}
           </div>
           <div className="relative">
             {backgroundImage && (
-              <img src={backgroundImage} alt="" className="rounded-xl shadow-2xl w-full" />
+              <div className="relative w-full aspect-video">
+                <Image
+                  src={backgroundImage}
+                  alt={headline}
+                  fill
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                  className="rounded-xl shadow-2xl object-cover"
+                  priority
+                />
+              </div>
             )}
           </div>
         </div>
@@ -85,7 +99,7 @@ export function HeroSection({
         )}
         <div className="absolute inset-0 bg-black/60" />
         <div className="relative z-10 text-center text-white max-w-4xl px-4">
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight">{headline}</h1>
+          <Heading className="text-5xl md:text-7xl font-bold leading-tight">{headline}</Heading>
           {subheadline && <p className="text-xl mt-4 opacity-90">{subheadline}</p>}
           {renderCTA()}
         </div>
@@ -104,7 +118,7 @@ export function HeroSection({
           backgroundSize: "24px 24px",
         }} />
         <div className="relative max-w-4xl mx-auto text-center">
-          <h1 className="text-5xl md:text-7xl font-bold leading-tight">{headline}</h1>
+          <Heading className="text-5xl md:text-7xl font-bold leading-tight">{headline}</Heading>
           {subheadline && <p className="text-xl text-muted-foreground mt-4">{subheadline}</p>}
           <div className="flex justify-center">{renderCTA()}</div>
         </div>
@@ -116,17 +130,22 @@ export function HeroSection({
     return (
       <section className="py-20 px-4" style={{ backgroundColor }}>
         <div className="max-w-7xl mx-auto text-center">
-          <h1 className="text-5xl md:text-6xl font-bold leading-tight">{headline}</h1>
+          <Heading className="text-5xl md:text-6xl font-bold leading-tight">{headline}</Heading>
           {subheadline && <p className="text-xl text-muted-foreground mt-4 max-w-2xl mx-auto">{subheadline}</p>}
           <div className="flex justify-center">{renderCTA()}</div>
           {mockupImage && (
             <div className="mt-16 relative">
               <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent z-10" />
-              <img
-                src={mockupImage}
-                alt="Product preview"
-                className="rounded-xl shadow-2xl mx-auto max-w-4xl w-full"
-              />
+              <div className="relative max-w-4xl mx-auto w-full aspect-video">
+                <Image
+                  src={mockupImage}
+                  alt="Product preview"
+                  fill
+                  sizes="(max-width: 768px) 100vw, 896px"
+                  className="rounded-xl shadow-2xl object-cover"
+                  priority
+                />
+              </div>
             </div>
           )}
         </div>
@@ -139,22 +158,28 @@ export function HeroSection({
       <section className="py-20 px-4" style={{ backgroundColor }}>
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12 items-center">
           <div>
-            <h1 className="text-5xl md:text-6xl font-bold leading-tight">{headline}</h1>
+            <Heading className="text-5xl md:text-6xl font-bold leading-tight">{headline}</Heading>
             {subheadline && <p className="text-xl text-muted-foreground mt-4">{subheadline}</p>}
             {renderCTA()}
           </div>
           <div className="grid grid-cols-2 gap-4">
             {images.slice(0, 4).map((img, i) => (
-              <img
+              <div
                 key={i}
-                src={img}
-                alt=""
                 className={cn(
-                  "rounded-lg shadow-lg w-full object-cover",
+                  "relative w-full",
                   i % 2 === 0 ? "h-48" : "h-56",
                   i === 0 && "mt-8"
                 )}
-              />
+              >
+                <Image
+                  src={img}
+                  alt={`${headline} image ${i + 1}`}
+                  fill
+                  sizes="(max-width: 768px) 50vw, 25vw"
+                  className="rounded-lg shadow-lg object-cover"
+                />
+              </div>
             ))}
           </div>
         </div>
@@ -174,9 +199,9 @@ export function HeroSection({
     >
       {backgroundImage && <div className="absolute inset-0 bg-black/50" />}
       <div className="relative z-10 text-center max-w-4xl px-4">
-        <h1 className={cn("text-5xl md:text-7xl font-bold leading-tight", backgroundImage && "text-white")}>
+        <Heading className={cn("text-5xl md:text-7xl font-bold leading-tight", backgroundImage && "text-white")}>
           {headline}
-        </h1>
+        </Heading>
         {subheadline && (
           <p className={cn("text-xl mt-4", backgroundImage ? "text-white/90" : "text-muted-foreground")}>
             {subheadline}
