@@ -1,0 +1,66 @@
+Prompt 17: musekit-cms — Audit Log Column Fix + DynamicPage/SiteNav Graceful Fallbacks
+Module Repl
+musekit-cms (GitHub: SpeckledDarth/musekit-cms)
+
+Context
+The CMS package was updated with Parts F, G, and H (DynamicPage, SiteNav, HomePageLoader, SEO functions, JSON-LD helpers, PageErrorBoundary). All components are built and exported correctly. This prompt addresses two small issues found during integration verification.
+
+Fix A: Audit Log Column Alignment
+File: src/lib/audit.ts
+
+The current implementation correctly packs entity and entity_id into the details JSONB column — this is good. However, the function should also include the ip_address column since the real audit_logs table has it.
+
+Real audit_logs table schema:
+Column	Type
+id	uuid (PK, auto-generated)
+user_id	uuid
+action	text
+details	jsonb
+ip_address	text
+created_at	timestamptz (auto-generated)
+Required change:
+The auditLog function is client-side (uses getBrowserClient), so it cannot reliably get the IP address. That's fine — just make sure the insert statement does NOT include any columns that don't exist in the table. Verify the current insert only sets: action, user_id, details. This should already be correct, but confirm it.
+
+Also verify: No other file in the CMS package inserts into audit_logs with columns like entity, entity_id, entity_type, or ip_address at the top level (these columns don't exist as separate columns — entity data goes inside details JSONB).
+
+Fix B: DynamicPage Graceful Fallback When site_pages Table Doesn't Exist
+Files: src/landing/DynamicPage.tsx, src/landing/SiteNav.tsx, src/landing/HomePageLoader.tsx, src/seo/sitemap.ts, src/seo/metadata.ts
+
+The site_pages table may not exist in the database yet (it needs to be created separately). All components that query this table must handle the case where the query returns an error (e.g., relation "site_pages" does not exist) without crashing.
+
+Required behavior for each component:
+DynamicPage — If the site_pages query fails (table missing or page not found), show a clean 404-style message, NOT a crash. Should already work since notFound state is handled, but verify the Supabase error case is caught.
+
+SiteNav — If the site_pages query fails, render nothing (empty nav links). Should already work since it initializes pages as [], but verify the error is caught silently.
+
+HomePageLoader — If the site_pages query fails, fall back to defaultLandingConfig. Verify the catch block or error handling uses the default config.
+
+generateSitemap (src/seo/sitemap.ts) — If the site_pages query fails, the sitemap should still include static pages, blog posts, and legal pages — just skip the dynamic pages section. Verify the code handles data being null from a failed query (currently uses (sitePages || []) which should work).
+
+getPageMetadata (src/seo/metadata.ts) — If querying site_pages for a slug fails, return sensible default metadata (app name as title, generic description). Verify it doesn't crash.
+
+Test approach:
+Since the site_pages table doesn't exist yet, you can test by running the components and confirming they render/return defaults instead of crashing.
+
+Fix C: Remove Migration File (if present)
+If a file like supabase/migrations/001_create_site_pages.sql exists in this repo, delete it. Database schema changes are NOT managed by the CMS package — they are handled by the musekit-database module or by the user directly in the Supabase SQL Editor.
+
+What NOT to Do
+Do NOT create or modify any database tables
+Do NOT ask for Supabase service role keys or database credentials
+Do NOT add new features or components
+Do NOT change any SEO function signatures or return types
+Do NOT modify the barrel exports in src/index.ts or src/seo/index.ts
+Verification Checklist
+Before reporting completion, confirm EACH of these items:
+
+ src/lib/audit.ts — insert statement only sets columns: action, user_id, details (no entity, entity_id, or ip_address as top-level columns)
+ grep -rn "\.insert(" src/ — no insert to audit_logs uses columns that don't exist in the schema
+ src/landing/DynamicPage.tsx — handles Supabase query error without crashing (shows 404 or fallback UI)
+ src/landing/SiteNav.tsx — handles Supabase query error without crashing (renders empty)
+ src/landing/HomePageLoader.tsx — handles Supabase query error by falling back to defaultLandingConfig
+ src/seo/sitemap.ts — handles missing site_pages table gracefully (still returns static + blog entries)
+ src/seo/metadata.ts — handles missing site_pages gracefully (returns default metadata)
+ No migration files exist in the repo (no supabase/migrations/ directory or SQL files)
+ No files import from or reference next/router — all routing uses next/navigation
+ grep -r "next/router" src/ returns zero results
