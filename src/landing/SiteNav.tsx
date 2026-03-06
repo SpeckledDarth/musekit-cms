@@ -51,7 +51,7 @@ export function SiteNav({ className }: SiteNavProps) {
         <a
           key={page.slug}
           href={page.slug === "home" ? "/" : `/${page.slug}`}
-          className="text-sm font-medium text-gray-700 hover:text-gray-900 transition-colors"
+          className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors"
         >
           {page.title}
         </a>

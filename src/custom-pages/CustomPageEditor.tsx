@@ -5,6 +5,12 @@ import { getBrowserClient } from "@/src/lib/supabase";
 import { slugify, cn, formatDate } from "@/src/lib/utils";
 import { useToast } from "@/src/lib/toast";
 import { BlogEditor } from "@/src/blog/BlogEditor";
+import { RelativeTime } from "@/src/lib/RelativeTime";
+import { useUnsavedChanges } from "@/src/lib/useUnsavedChanges";
+import { Breadcrumb } from "@/src/lib/Breadcrumb";
+import { Pagination, paginate } from "@/src/lib/Pagination";
+import { auditLog } from "@/src/lib/audit";
+import { useURLFilters } from "@/src/lib/useURLFilters";
 import {
   Plus,
   Trash2,
@@ -13,6 +19,7 @@ import {
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
+  Download,
 } from "lucide-react";
 
 interface Page {
@@ -40,10 +47,13 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [search, setSearch] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const { getParam, getNumericParam, setParams } = useURLFilters();
+
+  const [search, setSearch] = useState(getParam("q"));
+  const [sortField, setSortField] = useState<SortField>(getParam("sort", "created_at") as SortField);
+  const [sortDir, setSortDir] = useState<SortDir>(getParam("dir", "desc") as SortDir);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(getNumericParam("page", 1));
 
   const [formTitle, setFormTitle] = useState("");
   const [formSlug, setFormSlug] = useState("");
@@ -52,6 +62,10 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   const [formPublished, setFormPublished] = useState(true);
   const [formContent, setFormContent] = useState("");
 
+  const [isDirty, setIsDirty] = useState(false);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+
+  const { confirmDiscard } = useUnsavedChanges(isDirty);
   const { success, error: showError } = useToast();
 
   function resetForm() {
@@ -61,25 +75,31 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
     setFormExcerpt("");
     setFormPublished(true);
     setFormContent("");
+    setIsDirty(false);
+    setFieldErrors({});
   }
 
   function initFormForCreate() {
     resetForm();
+    setIsDirty(false);
     setCreating(true);
   }
 
-  function initFormForEdit(page: Page) {
-    setFormTitle(page.title);
-    setFormSlug(page.slug);
+  function initFormForEdit(pg: Page) {
+    setFormTitle(pg.title);
+    setFormSlug(pg.slug);
     setFormSlugManual(true);
-    setFormExcerpt(page.excerpt || "");
-    setFormPublished(page.published);
-    setFormContent(page.content);
-    setEditing(page);
+    setFormExcerpt(pg.excerpt || "");
+    setFormPublished(pg.published);
+    setFormContent(pg.content);
+    setIsDirty(false);
+    setFieldErrors({});
+    setEditing(pg);
   }
 
   function handleTitleChange(value: string) {
     setFormTitle(value);
+    setIsDirty(true);
     if (!formSlugManual) {
       setFormSlug(slugify(value));
     }
@@ -88,6 +108,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   function handleSlugChange(value: string) {
     setFormSlugManual(true);
     setFormSlug(slugify(value));
+    setIsDirty(true);
   }
 
   async function fetchPages() {
@@ -113,6 +134,10 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   }, []);
 
   async function handleCreate(data: { title: string; content: string }) {
+    if (!data.title.trim()) {
+      setFieldErrors({ title: "Title is required" });
+      return;
+    }
     setSaving(true);
     try {
       const supabase = getBrowserClient();
@@ -133,7 +158,9 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
       if (error) throw error;
       setCreating(false);
       resetForm();
+      setFieldErrors({});
       success("Page created");
+      auditLog({ action: "create", entity: "page", userId, details: { title: data.title, slug: formSlug } });
       fetchPages();
     } catch (err) {
       console.error("Failed to create page:", err);
@@ -145,6 +172,10 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
 
   async function handleUpdate(data: { title: string; content: string }) {
     if (!editing) return;
+    if (!data.title.trim()) {
+      setFieldErrors({ title: "Title is required" });
+      return;
+    }
     setSaving(true);
     try {
       const supabase = getBrowserClient();
@@ -159,9 +190,12 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
         })
         .eq("id", editing.id);
       if (error) throw error;
+      const editingId = editing.id;
       setEditing(null);
       resetForm();
+      setFieldErrors({});
       success("Page updated");
+      auditLog({ action: "update", entity: "page", entityId: editingId, userId, details: { title: data.title } });
       fetchPages();
     } catch (err) {
       console.error("Failed to update page:", err);
@@ -183,6 +217,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
         return next;
       });
       success("Page deleted");
+      auditLog({ action: "delete", entity: "page", entityId: id, userId });
       fetchPages();
     } catch (err) {
       console.error("Failed to delete page:", err);
@@ -221,13 +256,20 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
     return result;
   }, [pages, search, sortField, sortDir]);
 
+  const paginatedItems = paginate(filteredAndSorted, page);
+
   function toggleSort(field: SortField) {
+    let newField = field;
+    let newDir: SortDir;
     if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      newDir = sortDir === "asc" ? "desc" : "asc";
+      setSortDir(newDir);
     } else {
-      setSortField(field);
-      setSortDir("asc");
+      newDir = "asc";
+      setSortField(newField);
+      setSortDir(newDir);
     }
+    setParams({ sort: newField, dir: newDir, page: null });
   }
 
   function SortIcon({ field }: { field: SortField }) {
@@ -267,13 +309,28 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
         .in("id", Array.from(selected));
       if (error) throw error;
       const count = selected.size;
+      const ids = Array.from(selected);
       setSelected(new Set());
       success(`${count} page(s) deleted`);
+      auditLog({ action: "bulk_delete", entity: "page", userId, details: { count, ids } });
       fetchPages();
     } catch (err) {
       console.error("Failed to bulk delete:", err);
       showError("Failed to delete selected pages");
     }
+  }
+
+  function exportCSV() {
+    const csv = ["Title,Slug,Status,Created", ...filteredAndSorted.map(p =>
+      [p.title, p.slug, p.published ? "Published" : "Draft", p.created_at || ""].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")
+    )].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "custom-pages-" + new Date().toISOString().split("T")[0] + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
   }
 
   function MetadataFields() {
@@ -299,7 +356,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           <label className="block text-sm font-medium mb-1">Excerpt / Description</label>
           <textarea
             value={formExcerpt}
-            onChange={(e) => setFormExcerpt(e.target.value)}
+            onChange={(e) => { setFormExcerpt(e.target.value); setIsDirty(true); }}
             placeholder="Brief description for SEO and page previews..."
             rows={2}
             className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary resize-none"
@@ -309,7 +366,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           <label className="text-sm font-medium">Published</label>
           <button
             type="button"
-            onClick={() => setFormPublished(!formPublished)}
+            onClick={() => { setFormPublished(!formPublished); setIsDirty(true); }}
             aria-label={formPublished ? "Set to draft" : "Set to published"}
             className={cn(
               "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
@@ -330,6 +387,9 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
             {formPublished ? "Published" : "Draft"}
           </span>
         </div>
+        {fieldErrors.title && (
+          <p className="text-sm text-red-500">{fieldErrors.title}</p>
+        )}
       </div>
     );
   }
@@ -337,12 +397,13 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   if (creating) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
+        <Breadcrumb items={[{ label: "Custom Pages", onClick: () => { if (confirmDiscard()) { setCreating(false); resetForm(); } } }, { label: "New Page" }]} />
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Create Page</h1>
-          <button onClick={() => { setCreating(false); resetForm(); }} className="text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+          <button onClick={() => { if (confirmDiscard()) { setCreating(false); resetForm(); } }} className="text-sm text-muted-foreground hover:text-foreground">Cancel</button>
         </div>
         <MetadataFields />
-        <BlogEditor onSave={handleCreate} saving={saving} onTitleChange={handleTitleChange} />
+        <BlogEditor onSave={handleCreate} saving={saving} onTitleChange={(v) => { handleTitleChange(v); setIsDirty(true); }} onContentChange={() => setIsDirty(true)} />
       </div>
     );
   }
@@ -350,12 +411,13 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
   if (editing) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
+        <Breadcrumb items={[{ label: "Custom Pages", onClick: () => { if (confirmDiscard()) { setEditing(null); resetForm(); } } }, { label: "Edit Page" }]} />
         <div className="flex items-center justify-between mb-6">
           <h1 className="text-2xl font-bold">Edit Page</h1>
-          <button onClick={() => { setEditing(null); resetForm(); }} className="text-sm text-muted-foreground hover:text-foreground">Cancel</button>
+          <button onClick={() => { if (confirmDiscard()) { setEditing(null); resetForm(); } }} className="text-sm text-muted-foreground hover:text-foreground">Cancel</button>
         </div>
         <MetadataFields />
-        <BlogEditor initialTitle={editing.title} initialContent={editing.content} onSave={handleUpdate} saving={saving} onTitleChange={handleTitleChange} />
+        <BlogEditor initialTitle={editing.title} initialContent={editing.content} onSave={handleUpdate} saving={saving} onTitleChange={(v) => { handleTitleChange(v); setIsDirty(true); }} onContentChange={() => setIsDirty(true)} />
       </div>
     );
   }
@@ -367,9 +429,14 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           <h1 className="text-2xl font-bold">Custom Pages</h1>
           <p className="text-sm text-muted-foreground">{filteredAndSorted.length} page(s)</p>
         </div>
-        <button onClick={initFormForCreate} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90">
-          <Plus className="w-4 h-4" /> New Page
-        </button>
+        <div className="flex items-center gap-2">
+          <button onClick={exportCSV} className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-muted">
+            <Download className="w-4 h-4" /> Export CSV
+          </button>
+          <button onClick={initFormForCreate} className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90">
+            <Plus className="w-4 h-4" /> New Page
+          </button>
+        </div>
       </div>
 
       <div className="mb-4">
@@ -380,7 +447,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
             id="pages-search"
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { const val = e.target.value; setSearch(val); setPage(1); setParams({ q: val, page: null }); }}
             placeholder="Search pages..."
             className="w-full pl-9 pr-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
@@ -425,109 +492,112 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto">
-          <table className="w-full min-w-[650px]">
-            <thead>
-              <tr className="bg-muted/50">
-                <th className="w-10 px-3 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === filteredAndSorted.length && filteredAndSorted.length > 0}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all pages"
-                    className="rounded border-border"
-                  />
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
-                  onClick={() => toggleSort("title")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Title <SortIcon field="title" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-40"
-                  onClick={() => toggleSort("slug")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Slug <SortIcon field="slug" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-28"
-                  onClick={() => toggleSort("published")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Status <SortIcon field="published" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-36"
-                  onClick={() => toggleSort("created_at")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Created <SortIcon field="created_at" />
-                  </span>
-                </th>
-                <th className="w-20 px-4 py-3 text-sm font-medium text-muted-foreground text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSorted.map((page) => (
-                <tr
-                  key={page.id}
-                  onClick={() => initFormForEdit(page)}
-                  className="border-t border-border cursor-pointer hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <>
+          <div className="border border-border rounded-lg overflow-x-auto">
+            <table className="w-full min-w-[650px]">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="w-10 px-3 py-3">
                     <input
                       type="checkbox"
-                      checked={selected.has(page.id)}
-                      onChange={() => toggleSelect(page.id)}
-                      aria-label={`Select ${page.title}`}
+                      checked={selected.size === filteredAndSorted.length && filteredAndSorted.length > 0}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all pages"
                       className="rounded border-border"
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-sm">{page.title}</span>
-                    {page.excerpt && (
-                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{page.excerpt}</p>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm text-muted-foreground">/{page.slug}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                        page.published
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                      )}
-                    >
-                      {page.published ? "Published" : "Draft"}
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+                    onClick={() => toggleSort("title")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Title <SortIcon field="title" />
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {page.created_at ? formatDate(page.created_at) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <button
-                      onClick={() => handleDelete(page.id)}
-                      className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
-                      aria-label="Delete page"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </td>
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-40"
+                    onClick={() => toggleSort("slug")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Slug <SortIcon field="slug" />
+                    </span>
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-28"
+                    onClick={() => toggleSort("published")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Status <SortIcon field="published" />
+                    </span>
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-36"
+                    onClick={() => toggleSort("created_at")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Created <SortIcon field="created_at" />
+                    </span>
+                  </th>
+                  <th className="w-20 px-4 py-3 text-sm font-medium text-muted-foreground text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paginatedItems.map((pg) => (
+                  <tr
+                    key={pg.id}
+                    onClick={() => initFormForEdit(pg)}
+                    className="border-t border-border cursor-pointer hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(pg.id)}
+                        onChange={() => toggleSelect(pg.id)}
+                        aria-label={`Select ${pg.title}`}
+                        className="rounded border-border"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-sm">{pg.title}</span>
+                      {pg.excerpt && (
+                        <p className="text-xs text-muted-foreground mt-0.5 line-clamp-1">{pg.excerpt}</p>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-muted-foreground">/{pg.slug}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                          pg.published
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                        )}
+                      >
+                        {pg.published ? "Published" : "Draft"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {pg.created_at ? <RelativeTime date={pg.created_at} /> : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <button
+                        onClick={() => handleDelete(pg.id)}
+                        className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                        aria-label="Delete page"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination currentPage={page} totalItems={filteredAndSorted.length} onPageChange={(p) => { setPage(p); setParams({ page: p > 1 ? p : null }); }} />
+        </>
       )}
     </div>
   );

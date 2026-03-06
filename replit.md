@@ -17,6 +17,7 @@ Content management system for the MuseKit SaaS platform. Built with Next.js 14.2
 - `feedback` — NPS/feedback submissions
 - `settings` — Key-value settings (columns: id, key, value — no updated_at). Branding keys: `branding.appName`, `branding.logoUrl`, `branding.faviconUrl`, `branding.description`
 - `site_pages` — Dynamic pages built from sections (columns: slug, title, status, sections JSONB, seo_title, seo_description, og_image, canonical_url, no_index, show_in_nav, sort_order, created_at, updated_at)
+- `audit_logs` — Audit trail for admin mutations (columns: id, action, entity, entity_id, user_id, details JSONB, created_at) — **must be created in Supabase**
 
 ## Project Structure
 ```
@@ -39,7 +40,7 @@ src/                    # Reusable CMS components
 ├── seo/                # SEO metadata functions, sitemap/robots generators, JSON-LD helpers
 ├── components/         # PageErrorBoundary
 ├── admin/              # AdminAuthGate
-├── lib/                # Supabase client, utilities, auth, toast
+├── lib/                # Supabase client, utilities, auth, toast, audit, pagination, breadcrumbs, relative time
 └── index.ts            # Barrel export
 ```
 
@@ -98,6 +99,7 @@ Server-side functions returning Next.js `Metadata` objects:
 ### Heading Hierarchy
 - LandingPageBuilder enforces h1/h2 rules: first hero gets `<h1>`, subsequent heroes get `<h2>`
 - Section titles use `<h2>`, sub-items use `<h3>`
+- Markdown heading downshift: BlogPost, BlogEditor, ChangelogAdmin preview all map h1→h2, h2→h3, etc. via custom ReactMarkdown components
 
 ### Performance Headers (`next.config.mjs`)
 - `X-Content-Type-Options: nosniff`
@@ -110,6 +112,32 @@ Server-side functions returning Next.js `Metadata` objects:
 - `DynamicPage` component (`src/landing/DynamicPage.tsx`) — Renders pages from `site_pages` table via LandingPageBuilder. Supports preview mode with dismissible banner.
 - `SiteNav` component (`src/landing/SiteNav.tsx`) — Dynamic navigation from `site_pages` where `show_in_nav=true`. Caches query in React state.
 - `HomePageLoader` component (`src/landing/HomePageLoader.tsx`) — Loads homepage from `site_pages`, falls back to `defaultLandingConfig`.
+
+## STANDARD E UX Features
+All admin views (BlogAdmin, ChangelogAdmin, CustomPageEditor, WaitlistAdmin) include:
+- **URL-persisted filters**: Search, filter, sort, and page state synced to URL query params via `useURLFilters` hook
+- **Pagination**: 25 rows/page with Previous/Next controls and item counts
+- **Relative timestamps**: Dates show "2 hours ago" with full date on hover tooltip
+- **CSV export**: Export filtered data as CSV from all list views
+- **Breadcrumbs**: Create/edit views show hierarchical breadcrumb navigation
+- **Unsaved changes**: Browser warns before navigating away from dirty forms (beforeunload)
+- **Inline validation**: Required field errors shown inline (title required, email format)
+- **Audit logging**: All mutations (create, update, delete, publish, bulk ops) write to `audit_logs` table
+- **Toast notifications**: Success/error toasts on every mutation (via useToast)
+- **Empty states**: Custom icons and messages when lists have zero rows
+- **Confirmation dialogs**: All destructive operations (delete, bulk delete) require confirmation
+- **Dark mode**: `dark:` Tailwind classes on all components
+- **Loading skeletons**: Animated skeleton loaders on every data-fetching page
+- **Row counts**: List page titles show item counts
+- **Checkbox selection**: Bulk operations via checkbox column + floating action bar
+
+## Shared Library Components (`src/lib/`)
+- `audit.ts` — `auditLog()` fire-and-forget function writing to `audit_logs` table
+- `Pagination.tsx` — `<Pagination>` component + `paginate()` helper (25 items/page)
+- `RelativeTime.tsx` — `<RelativeTime>` component with hover tooltip showing absolute date
+- `Breadcrumb.tsx` — `<Breadcrumb>` component for hierarchical navigation
+- `useUnsavedChanges.ts` — `useUnsavedChanges(isDirty)` hook with `confirmDiscard()` return
+- `useURLFilters.ts` — `useURLFilters()` hook for syncing search/filter/sort/page to URL query params
 
 ## Commands
 - `npm run dev` — Development server on port 5000

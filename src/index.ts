@@ -57,7 +57,13 @@ export {
   getBreadcrumbSchema,
   getFAQSchema,
 } from "./seo";
-export type { BrandSettings, SitePage, BlogPost } from "./seo";
+export type { BrandSettings, SitePage, BlogPost as BlogPostSEO } from "./seo";
 
 export { cn, replaceVariables, formatDate, slugify } from "./lib/utils";
 export { getSupabaseClient, getSupabaseAdmin, getBrowserClient } from "./lib/supabase";
+export { auditLog } from "./lib/audit";
+export { RelativeTime } from "./lib/RelativeTime";
+export { Breadcrumb } from "./lib/Breadcrumb";
+export { Pagination, paginate } from "./lib/Pagination";
+export { useUnsavedChanges } from "./lib/useUnsavedChanges";
+export { useURLFilters } from "./lib/useURLFilters";

@@ -5,6 +5,12 @@ import { getBrowserClient } from "@/src/lib/supabase";
 import { formatDate, slugify } from "@/src/lib/utils";
 import { BlogEditor } from "./BlogEditor";
 import { useToast } from "@/src/lib/toast";
+import { RelativeTime } from "@/src/lib/RelativeTime";
+import { useUnsavedChanges } from "@/src/lib/useUnsavedChanges";
+import { useURLFilters } from "@/src/lib/useURLFilters";
+import { Breadcrumb } from "@/src/lib/Breadcrumb";
+import { Pagination, paginate } from "@/src/lib/Pagination";
+import { auditLog } from "@/src/lib/audit";
 import {
   Plus,
   Trash2,
@@ -15,6 +21,7 @@ import {
   ChevronDown,
   ChevronsUpDown,
   FileText,
+  Download,
 } from "lucide-react";
 import { cn } from "@/src/lib/utils";
 
@@ -40,20 +47,30 @@ type SortField = "title" | "published" | "type" | "created_at" | "updated_at";
 type SortDir = "asc" | "desc";
 
 export function BlogAdmin({ userId }: BlogAdminProps) {
+  const { getParam, getNumericParam, setParams } = useURLFilters();
+
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Post | null>(null);
   const [creating, setCreating] = useState(false);
   const [saving, setSaving] = useState(false);
 
-  const [search, setSearch] = useState("");
-  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">("all");
-  const [typeFilter, setTypeFilter] = useState<"all" | "blog" | "changelog">("all");
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [search, setSearch] = useState(getParam("q"));
+  const [statusFilter, setStatusFilter] = useState<"all" | "published" | "draft">(getParam("status", "all") as "all" | "published" | "draft");
+  const [typeFilter, setTypeFilter] = useState<"all" | "blog" | "changelog">(getParam("type", "all") as "all" | "blog" | "changelog");
+  const [sortField, setSortField] = useState<SortField>(getParam("sort", "created_at") as SortField);
+  const [sortDir, setSortDir] = useState<SortDir>(getParam("dir", "desc") as SortDir);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(getNumericParam("page", 1));
+  const [isDirty, setIsDirty] = useState(false);
+  const [titleError, setTitleError] = useState("");
 
   const { success, error: showError } = useToast();
+  const { confirmDiscard } = useUnsavedChanges(isDirty);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search, statusFilter, typeFilter]);
 
   async function fetchPosts() {
     try {
@@ -128,13 +145,19 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
     return result;
   }, [posts, search, statusFilter, typeFilter, sortField, sortDir]);
 
+  const paginatedItems = paginate(filteredAndSorted, page);
+
   function toggleSort(field: SortField) {
+    let newDir: SortDir;
     if (sortField === field) {
-      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+      newDir = sortDir === "asc" ? "desc" : "asc";
+      setSortDir(newDir);
     } else {
+      newDir = "asc";
       setSortField(field);
-      setSortDir("asc");
+      setSortDir(newDir);
     }
+    setParams({ sort: field, dir: newDir, page: null });
   }
 
   function SortIcon({ field }: { field: SortField }) {
@@ -163,7 +186,21 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
     }
   }
 
+  function exportCSV() {
+    const csv = ["Title,Slug,Status,Type,Created,Updated", ...filteredAndSorted.map(p =>
+      [p.title, p.slug, p.published ? "Published" : "Draft", p.type || "blog", p.created_at, p.updated_at || ""].map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")
+    )].join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "blog-posts-" + new Date().toISOString().split("T")[0] + ".csv";
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
   async function handleCreate(data: { title: string; content: string }) {
+    if (!data.title.trim()) { setTitleError("Title is required"); return; } else { setTitleError(""); }
     setSaving(true);
     try {
       const supabase = getBrowserClient();
@@ -181,7 +218,9 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
       });
       if (error) throw error;
       setCreating(false);
+      setIsDirty(false);
       success("Post created");
+      auditLog({ action: "create", entity: "post", entityId: undefined, userId, details: { title: data.title } });
       fetchPosts();
     } catch (err) {
       console.error("Failed to create post:", err);
@@ -193,6 +232,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
 
   async function handleUpdate(data: { title: string; content: string }) {
     if (!editing) return;
+    if (!data.title.trim()) { setTitleError("Title is required"); return; } else { setTitleError(""); }
     setSaving(true);
     try {
       const supabase = getBrowserClient();
@@ -206,7 +246,9 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         .eq("id", editing.id);
       if (error) throw error;
       setEditing(null);
+      setIsDirty(false);
       success("Post updated");
+      auditLog({ action: "update", entity: "post", entityId: editing.id, userId, details: { title: data.title } });
       fetchPosts();
     } catch (err) {
       console.error("Failed to update post:", err);
@@ -229,6 +271,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         .eq("id", post.id);
       if (error) throw error;
       success(nowPublished ? "Post published" : "Post unpublished");
+      auditLog({ action: nowPublished ? "publish" : "unpublish", entity: "post", entityId: post.id, userId });
       fetchPosts();
     } catch (err) {
       console.error("Failed to toggle publish:", err);
@@ -248,6 +291,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         return next;
       });
       success("Post deleted");
+      auditLog({ action: "delete", entity: "post", entityId: id, userId });
       fetchPosts();
     } catch (err) {
       console.error("Failed to delete post:", err);
@@ -265,6 +309,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         .delete()
         .in("id", Array.from(selected));
       if (error) throw error;
+      auditLog({ action: "bulk_delete", entity: "post", userId, details: { count: selected.size, ids: Array.from(selected) } });
       setSelected(new Set());
       success(`${selected.size} post(s) deleted`);
       fetchPosts();
@@ -288,6 +333,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         })
         .in("id", Array.from(selected));
       if (error) throw error;
+      auditLog({ action: publish ? "bulk_publish" : "bulk_unpublish", entity: "post", userId, details: { count: selected.size, ids: Array.from(selected) } });
       setSelected(new Set());
       success(`${selected.size} post(s) ${action}ed`);
       fetchPosts();
@@ -300,16 +346,9 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
   if (creating) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Create New Post</h1>
-          <button
-            onClick={() => setCreating(false)}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </button>
-        </div>
-        <BlogEditor onSave={handleCreate} saving={saving} />
+        <Breadcrumb items={[{ label: "Blog Admin", onClick: () => { if (confirmDiscard()) { setCreating(false); setIsDirty(false); setTitleError(""); } } }, { label: "New Post" }]} />
+        {titleError && <p className="text-red-500 text-sm mb-2">{titleError}</p>}
+        <BlogEditor onSave={handleCreate} saving={saving} onTitleChange={() => { setIsDirty(true); setTitleError(""); }} onContentChange={() => setIsDirty(true)} />
       </div>
     );
   }
@@ -317,20 +356,15 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
   if (editing) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold">Edit Post</h1>
-          <button
-            onClick={() => setEditing(null)}
-            className="text-sm text-muted-foreground hover:text-foreground"
-          >
-            Cancel
-          </button>
-        </div>
+        <Breadcrumb items={[{ label: "Blog Admin", onClick: () => { if (confirmDiscard()) { setEditing(null); setIsDirty(false); setTitleError(""); } } }, { label: "Edit Post" }]} />
+        {titleError && <p className="text-red-500 text-sm mb-2">{titleError}</p>}
         <BlogEditor
           initialTitle={editing.title}
           initialContent={editing.content}
           onSave={handleUpdate}
           saving={saving}
+          onTitleChange={() => { setIsDirty(true); setTitleError(""); }}
+          onContentChange={() => setIsDirty(true)}
         />
       </div>
     );
@@ -343,13 +377,22 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
           <h1 className="text-2xl font-bold">Blog Admin</h1>
           <p className="text-sm text-muted-foreground">{filteredAndSorted.length} post(s)</p>
         </div>
-        <button
-          onClick={() => setCreating(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
-        >
-          <Plus className="w-4 h-4" />
-          New Post
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={exportCSV}
+            className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md text-sm font-medium hover:bg-muted"
+          >
+            <Download className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={() => { setCreating(true); setIsDirty(false); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90"
+          >
+            <Plus className="w-4 h-4" />
+            New Post
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-4">
@@ -360,14 +403,14 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
             id="blog-search"
             type="text"
             value={search}
-            onChange={(e) => setSearch(e.target.value)}
+            onChange={(e) => { const val = e.target.value; setSearch(val); setParams({ q: val, page: null }); }}
             placeholder="Search posts..."
             className="w-full pl-9 pr-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
         </div>
         <select
           value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value as typeof statusFilter)}
+          onChange={(e) => { const val = e.target.value as typeof statusFilter; setStatusFilter(val); setParams({ status: val, page: null }); }}
           aria-label="Filter by status"
           className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
@@ -377,7 +420,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
         </select>
         <select
           value={typeFilter}
-          onChange={(e) => setTypeFilter(e.target.value as typeof typeFilter)}
+          onChange={(e) => { const val = e.target.value as typeof typeFilter; setTypeFilter(val); setParams({ type: val, page: null }); }}
           aria-label="Filter by type"
           className="px-3 py-2 rounded-md border border-border bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
         >
@@ -445,135 +488,138 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
           )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto">
-          <table className="w-full min-w-[700px]">
-            <thead>
-              <tr className="bg-muted/50">
-                <th className="w-10 px-3 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === filteredAndSorted.length && filteredAndSorted.length > 0}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all posts"
-                    className="rounded border-border"
-                  />
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
-                  onClick={() => toggleSort("title")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Title <SortIcon field="title" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-28"
-                  onClick={() => toggleSort("published")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Status <SortIcon field="published" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-28"
-                  onClick={() => toggleSort("type")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Type <SortIcon field="type" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-36"
-                  onClick={() => toggleSort("created_at")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Created <SortIcon field="created_at" />
-                  </span>
-                </th>
-                <th
-                  className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-36"
-                  onClick={() => toggleSort("updated_at")}
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Updated <SortIcon field="updated_at" />
-                  </span>
-                </th>
-                <th className="w-24 px-4 py-3 text-sm font-medium text-muted-foreground text-right">
-                  Actions
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSorted.map((post) => (
-                <tr
-                  key={post.id}
-                  onClick={() => setEditing(post)}
-                  className="border-t border-border cursor-pointer hover:bg-muted/30 transition-colors"
-                >
-                  <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+        <>
+          <div className="border border-border rounded-lg overflow-x-auto">
+            <table className="w-full min-w-[700px]">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="w-10 px-3 py-3">
                     <input
                       type="checkbox"
-                      checked={selected.has(post.id)}
-                      onChange={() => toggleSelect(post.id)}
-                      aria-label={`Select ${post.title}`}
+                      checked={selected.size === filteredAndSorted.length && filteredAndSorted.length > 0}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all posts"
                       className="rounded border-border"
                     />
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="font-medium text-sm">{post.title}</span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className={cn(
-                        "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
-                        post.published
-                          ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                          : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
-                      )}
-                    >
-                      {post.published ? "Published" : "Draft"}
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground"
+                    onClick={() => toggleSort("title")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Title <SortIcon field="title" />
                     </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span className="text-sm text-muted-foreground capitalize">
-                      {post.type || "blog"}
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-28"
+                    onClick={() => toggleSort("published")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Status <SortIcon field="published" />
                     </span>
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {formatDate(post.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {post.updated_at ? formatDate(post.updated_at) : "—"}
-                  </td>
-                  <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                    <div className="inline-flex items-center gap-1">
-                      <button
-                        onClick={() => handleTogglePublish(post)}
-                        className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
-                        aria-label={post.published ? "Unpublish post" : "Publish post"}
-                        title={post.published ? "Unpublish" : "Publish"}
-                      >
-                        {post.published ? (
-                          <EyeOff className="w-4 h-4" />
-                        ) : (
-                          <Eye className="w-4 h-4" />
-                        )}
-                      </button>
-                      <button
-                        onClick={() => handleDelete(post.id)}
-                        className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
-                        aria-label="Delete post"
-                        title="Delete"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </td>
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-28"
+                    onClick={() => toggleSort("type")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Type <SortIcon field="type" />
+                    </span>
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-36"
+                    onClick={() => toggleSort("created_at")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Created <SortIcon field="created_at" />
+                    </span>
+                  </th>
+                  <th
+                    className="text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer select-none hover:text-foreground w-36"
+                    onClick={() => toggleSort("updated_at")}
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Updated <SortIcon field="updated_at" />
+                    </span>
+                  </th>
+                  <th className="w-24 px-4 py-3 text-sm font-medium text-muted-foreground text-right">
+                    Actions
+                  </th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paginatedItems.map((post) => (
+                  <tr
+                    key={post.id}
+                    onClick={() => { setEditing(post); setIsDirty(false); }}
+                    className="border-t border-border cursor-pointer hover:bg-muted/30 transition-colors"
+                  >
+                    <td className="px-3 py-3" onClick={(e) => e.stopPropagation()}>
+                      <input
+                        type="checkbox"
+                        checked={selected.has(post.id)}
+                        onChange={() => toggleSelect(post.id)}
+                        aria-label={`Select ${post.title}`}
+                        className="rounded border-border"
+                      />
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-medium text-sm">{post.title}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={cn(
+                          "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
+                          post.published
+                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                        )}
+                      >
+                        {post.published ? "Published" : "Draft"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="text-sm text-muted-foreground capitalize">
+                        {post.type || "blog"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <RelativeTime date={post.created_at} />
+                    </td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      {post.updated_at ? <RelativeTime date={post.updated_at} /> : "—"}
+                    </td>
+                    <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
+                      <div className="inline-flex items-center gap-1">
+                        <button
+                          onClick={() => handleTogglePublish(post)}
+                          className="p-1.5 text-muted-foreground hover:text-foreground rounded-md hover:bg-muted"
+                          aria-label={post.published ? "Unpublish post" : "Publish post"}
+                          title={post.published ? "Unpublish" : "Publish"}
+                        >
+                          {post.published ? (
+                            <EyeOff className="w-4 h-4" />
+                          ) : (
+                            <Eye className="w-4 h-4" />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => handleDelete(post.id)}
+                          className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                          aria-label="Delete post"
+                          title="Delete"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination currentPage={page} totalItems={filteredAndSorted.length} onPageChange={(p) => { setPage(p); setParams({ page: p > 1 ? p : null }); }} />
+        </>
       )}
     </div>
   );

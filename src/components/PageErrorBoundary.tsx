@@ -5,6 +5,8 @@ import React from "react";
 interface PageErrorBoundaryProps {
   children: React.ReactNode;
   fallbackTitle?: string;
+  logoUrl?: string;
+  appName?: string;
 }
 
 interface PageErrorBoundaryState {
@@ -32,59 +34,42 @@ export class PageErrorBoundary extends React.Component<
   render() {
     if (this.state.hasError) {
       const isDev = process.env.NODE_ENV === "development";
+      const appName = this.props.appName || "MuseKit";
 
       return (
-        <div style={{ minHeight: "60vh", display: "flex", alignItems: "center", justifyContent: "center", padding: "2rem" }}>
-          <div style={{ textAlign: "center", maxWidth: "480px" }}>
-            <h1 style={{ fontSize: "1.5rem", fontWeight: 700, marginBottom: "0.5rem" }}>
-              Something went wrong
+        <div className="min-h-[60vh] flex items-center justify-center p-8 bg-background text-foreground">
+          <div className="text-center max-w-lg">
+            {this.props.logoUrl ? (
+              <img
+                src={this.props.logoUrl}
+                alt={appName}
+                className="h-10 mx-auto mb-6"
+              />
+            ) : (
+              <p className="text-lg font-bold text-primary mb-6">{appName}</p>
+            )}
+            <h1 className="text-2xl font-bold mb-2">
+              {this.props.fallbackTitle || "Something went wrong"}
             </h1>
-            <p style={{ color: "#666", marginBottom: "1.5rem" }}>
+            <p className="text-muted-foreground mb-6">
               An unexpected error occurred. Please try again.
             </p>
             {isDev && this.state.error && (
-              <pre style={{
-                background: "#fef2f2",
-                color: "#b91c1c",
-                padding: "1rem",
-                borderRadius: "0.5rem",
-                fontSize: "0.8rem",
-                textAlign: "left",
-                overflow: "auto",
-                marginBottom: "1.5rem",
-                whiteSpace: "pre-wrap",
-                wordBreak: "break-word",
-              }}>
+              <pre className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 p-4 rounded-lg text-xs text-left overflow-auto mb-6 whitespace-pre-wrap break-words border border-red-200 dark:border-red-800">
                 {this.state.error.message}
                 {this.state.error.stack && `\n\n${this.state.error.stack}`}
               </pre>
             )}
-            <div style={{ display: "flex", gap: "1rem", justifyContent: "center" }}>
+            <div className="flex gap-4 justify-center">
               <button
                 onClick={this.handleReset}
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  background: "#2563eb",
-                  color: "#fff",
-                  border: "none",
-                  borderRadius: "0.375rem",
-                  cursor: "pointer",
-                  fontWeight: 500,
-                }}
+                className="px-6 py-2 bg-primary text-primary-foreground rounded-md font-medium hover:opacity-90 transition-opacity"
               >
                 Try Again
               </button>
               <a
                 href="/"
-                style={{
-                  padding: "0.5rem 1.5rem",
-                  background: "#f3f4f6",
-                  color: "#374151",
-                  border: "1px solid #d1d5db",
-                  borderRadius: "0.375rem",
-                  textDecoration: "none",
-                  fontWeight: 500,
-                }}
+                className="px-6 py-2 bg-muted text-foreground border border-border rounded-md font-medium hover:bg-muted/80 transition-colors no-underline"
               >
                 Go Home
               </a>

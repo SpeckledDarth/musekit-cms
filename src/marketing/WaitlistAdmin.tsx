@@ -4,6 +4,10 @@ import { useState, useEffect, useMemo } from "react";
 import { getBrowserClient } from "@/src/lib/supabase";
 import { formatDate } from "@/src/lib/utils";
 import { useToast } from "@/src/lib/toast";
+import { RelativeTime } from "@/src/lib/RelativeTime";
+import { Pagination, paginate } from "@/src/lib/Pagination";
+import { auditLog } from "@/src/lib/audit";
+import { useURLFilters } from "@/src/lib/useURLFilters";
 import { Download, RefreshCw, Search, ChevronUp, ChevronDown, Plus, Trash2, X, Users } from "lucide-react";
 
 interface WaitlistEntry {
@@ -16,16 +20,19 @@ type SortField = "email" | "created_at";
 type SortDirection = "asc" | "desc";
 
 export function WaitlistAdmin() {
+  const { getParam, getNumericParam, setParams } = useURLFilters();
   const [entries, setEntries] = useState<WaitlistEntry[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [sortField, setSortField] = useState<SortField>("created_at");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
+  const [searchQuery, setSearchQuery] = useState(getParam("q"));
+  const [sortField, setSortField] = useState<SortField>(getParam("sort", "created_at") as SortField);
+  const [sortDirection, setSortDirection] = useState<SortDirection>(getParam("dir", "desc") as SortDirection);
   const [showAddForm, setShowAddForm] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [addingEntry, setAddingEntry] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [page, setPage] = useState(getNumericParam("page", 1));
+  const [emailError, setEmailError] = useState("");
 
   const { success, error: showError } = useToast();
 
@@ -51,6 +58,10 @@ export function WaitlistAdmin() {
     fetchEntries();
   }, []);
 
+  useEffect(() => {
+    setPage(1);
+  }, [searchQuery]);
+
   const filteredAndSortedEntries = useMemo(() => {
     let result = entries;
 
@@ -72,13 +83,19 @@ export function WaitlistAdmin() {
     return result;
   }, [entries, searchQuery, sortField, sortDirection]);
 
+  const paginatedItems = paginate(filteredAndSortedEntries, page);
+
   function handleSort(field: SortField) {
+    let newDir: SortDirection;
     if (sortField === field) {
-      setSortDirection((d) => (d === "asc" ? "desc" : "asc"));
+      newDir = sortDirection === "asc" ? "desc" : "asc";
+      setSortDirection(newDir);
     } else {
+      newDir = "asc";
       setSortField(field);
-      setSortDirection("asc");
+      setSortDirection(newDir);
     }
+    setParams({ sort: field, dir: newDir, page: null });
   }
 
   function SortIndicator({ field }: { field: SortField }) {
@@ -94,6 +111,10 @@ export function WaitlistAdmin() {
 
   async function handleAddEntry() {
     if (!newEmail.trim()) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail.trim())) {
+      setEmailError("Please enter a valid email address");
+      return;
+    }
     setAddingEntry(true);
     try {
       const supabase = getBrowserClient();
@@ -101,7 +122,9 @@ export function WaitlistAdmin() {
         .from("waitlist_entries")
         .insert({ email: newEmail.trim() });
       if (error) throw error;
+      auditLog({ action: "create", entity: "waitlist_entry", details: { email: newEmail.trim() } });
       setNewEmail("");
+      setEmailError("");
       setShowAddForm(false);
       success("Entry added to waitlist");
       await fetchEntries();
@@ -121,6 +144,7 @@ export function WaitlistAdmin() {
         .delete()
         .eq("id", id);
       if (error) throw error;
+      auditLog({ action: "delete", entity: "waitlist_entry", entityId: id });
       setDeleteConfirmId(null);
       setSelected((prev) => {
         const next = new Set(prev);
@@ -163,6 +187,7 @@ export function WaitlistAdmin() {
         .in("id", Array.from(selected));
       if (error) throw error;
       const count = selected.size;
+      auditLog({ action: "bulk_delete", entity: "waitlist_entry", details: { count: selected.size } });
       setSelected(new Set());
       success(`${count} entry(ies) deleted`);
       await fetchEntries();
@@ -175,7 +200,7 @@ export function WaitlistAdmin() {
   function exportCSV() {
     const csv = [
       "Email,Signed Up",
-      ...entries.map((e) => `${e.email},${e.created_at}`),
+      ...filteredAndSortedEntries.map((e) => `${e.email},${e.created_at}`),
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv" });
@@ -230,7 +255,7 @@ export function WaitlistAdmin() {
               id="waitlist-add-email"
               type="email"
               value={newEmail}
-              onChange={(e) => setNewEmail(e.target.value)}
+              onChange={(e) => { setNewEmail(e.target.value); setEmailError(""); }}
               onKeyDown={(e) => e.key === "Enter" && handleAddEntry()}
               placeholder="Enter email address..."
               className="flex-1 px-3 py-2 border border-border rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
@@ -244,13 +269,14 @@ export function WaitlistAdmin() {
               {addingEntry ? "Adding..." : "Add"}
             </button>
             <button
-              onClick={() => { setShowAddForm(false); setNewEmail(""); }}
+              onClick={() => { setShowAddForm(false); setNewEmail(""); setEmailError(""); }}
               className="p-2 hover:bg-muted rounded-md transition-colors"
               aria-label="Close add form"
             >
               <X className="w-4 h-4" />
             </button>
           </div>
+          {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
         </div>
       )}
 
@@ -262,7 +288,7 @@ export function WaitlistAdmin() {
             id="waitlist-search"
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => { setSearchQuery(e.target.value); setParams({ q: e.target.value, page: null }); }}
             placeholder="Search by email..."
             className="w-full pl-10 pr-4 py-2 border border-border rounded-md bg-background text-sm focus:outline-none focus:ring-2 focus:ring-primary"
           />
@@ -311,88 +337,91 @@ export function WaitlistAdmin() {
           )}
         </div>
       ) : (
-        <div className="border border-border rounded-lg overflow-x-auto">
-          <table className="w-full min-w-[500px]">
-            <thead>
-              <tr className="bg-muted/50">
-                <th className="w-10 px-3 py-3">
-                  <input
-                    type="checkbox"
-                    checked={selected.size === filteredAndSortedEntries.length && filteredAndSortedEntries.length > 0}
-                    onChange={toggleSelectAll}
-                    aria-label="Select all entries"
-                    className="rounded border-border"
-                  />
-                </th>
-                <th
-                  onClick={() => handleSort("email")}
-                  className="group text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Email
-                    <SortIndicator field="email" />
-                  </span>
-                </th>
-                <th
-                  onClick={() => handleSort("created_at")}
-                  className="group text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
-                >
-                  <span className="inline-flex items-center gap-1">
-                    Signed Up
-                    <SortIndicator field="created_at" />
-                  </span>
-                </th>
-                <th className="w-12 px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {filteredAndSortedEntries.map((entry) => (
-                <tr key={entry.id} className="border-t border-border hover:bg-muted/30 transition-colors">
-                  <td className="px-3 py-3">
+        <>
+          <div className="border border-border rounded-lg overflow-x-auto">
+            <table className="w-full min-w-[500px]">
+              <thead>
+                <tr className="bg-muted/50">
+                  <th className="w-10 px-3 py-3">
                     <input
                       type="checkbox"
-                      checked={selected.has(entry.id)}
-                      onChange={() => toggleSelect(entry.id)}
-                      aria-label={`Select ${entry.email}`}
+                      checked={selected.size === filteredAndSortedEntries.length && filteredAndSortedEntries.length > 0}
+                      onChange={toggleSelectAll}
+                      aria-label="Select all entries"
                       className="rounded border-border"
                     />
-                  </td>
-                  <td className="px-4 py-3 text-sm">{entry.email}</td>
-                  <td className="px-4 py-3 text-sm text-muted-foreground">
-                    {formatDate(entry.created_at)}
-                  </td>
-                  <td className="px-4 py-3 text-sm">
-                    {deleteConfirmId === entry.id ? (
-                      <div className="flex items-center gap-1">
-                        <button
-                          onClick={() => handleDeleteEntry(entry.id)}
-                          className="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
-                        >
-                          Confirm
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirmId(null)}
-                          className="px-2 py-1 border border-border rounded text-xs hover:bg-muted"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirmId(entry.id)}
-                        className="p-1 text-muted-foreground hover:text-red-600 rounded transition-colors"
-                        aria-label={`Delete ${entry.email}`}
-                        title="Delete entry"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    )}
-                  </td>
+                  </th>
+                  <th
+                    onClick={() => handleSort("email")}
+                    className="group text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Email
+                      <SortIndicator field="email" />
+                    </span>
+                  </th>
+                  <th
+                    onClick={() => handleSort("created_at")}
+                    className="group text-left px-4 py-3 text-sm font-medium text-muted-foreground cursor-pointer hover:text-foreground select-none"
+                  >
+                    <span className="inline-flex items-center gap-1">
+                      Signed Up
+                      <SortIndicator field="created_at" />
+                    </span>
+                  </th>
+                  <th className="w-12 px-4 py-3"></th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody>
+                {paginatedItems.map((entry) => (
+                  <tr key={entry.id} className="border-t border-border hover:bg-muted/30 transition-colors">
+                    <td className="px-3 py-3">
+                      <input
+                        type="checkbox"
+                        checked={selected.has(entry.id)}
+                        onChange={() => toggleSelect(entry.id)}
+                        aria-label={`Select ${entry.email}`}
+                        className="rounded border-border"
+                      />
+                    </td>
+                    <td className="px-4 py-3 text-sm">{entry.email}</td>
+                    <td className="px-4 py-3 text-sm text-muted-foreground">
+                      <RelativeTime date={entry.created_at} />
+                    </td>
+                    <td className="px-4 py-3 text-sm">
+                      {deleteConfirmId === entry.id ? (
+                        <div className="flex items-center gap-1">
+                          <button
+                            onClick={() => handleDeleteEntry(entry.id)}
+                            className="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
+                          >
+                            Confirm
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirmId(null)}
+                            className="px-2 py-1 border border-border rounded text-xs hover:bg-muted"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirmId(entry.id)}
+                          className="p-1 text-muted-foreground hover:text-red-600 rounded transition-colors"
+                          aria-label={`Delete ${entry.email}`}
+                          title="Delete entry"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <Pagination currentPage={page} totalItems={filteredAndSortedEntries.length} onPageChange={(p) => { setPage(p); setParams({ page: p > 1 ? p : null }); }} />
+        </>
       )}
     </div>
   );

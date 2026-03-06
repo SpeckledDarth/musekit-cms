@@ -16,6 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { cn } from "../lib/utils";
+import { auditLog } from "../lib/audit";
 
 const BUCKET = "media";
 const MAX_FILE_SIZE = 5 * 1024 * 1024;
@@ -166,6 +167,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
 
       if (uploaded > 0) {
         success(`${uploaded} file(s) uploaded`);
+        auditLog({ action: "upload", entity: "media", details: { count: uploaded } });
       }
 
       await fetchFiles();
@@ -201,6 +203,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       if (error) throw error;
       setDeleteConfirmId(null);
       success("File deleted");
+      auditLog({ action: "delete", entity: "media", details: { fileName: file.name } });
       await fetchFiles();
     } catch (err) {
       console.error("Failed to delete file:", err);

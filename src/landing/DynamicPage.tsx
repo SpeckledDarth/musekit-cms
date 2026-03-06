@@ -53,13 +53,13 @@ export function DynamicPage({ slug, preview = false }: DynamicPageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-pulse space-y-8 w-full max-w-4xl px-4">
-          <div className="h-12 bg-gray-200 rounded w-3/4 mx-auto" />
-          <div className="h-6 bg-gray-200 rounded w-1/2 mx-auto" />
-          <div className="h-64 bg-gray-200 rounded" />
+          <div className="h-12 bg-muted rounded w-3/4 mx-auto" />
+          <div className="h-6 bg-muted rounded w-1/2 mx-auto" />
+          <div className="h-64 bg-muted rounded" />
           <div className="grid grid-cols-3 gap-4">
-            <div className="h-32 bg-gray-200 rounded" />
-            <div className="h-32 bg-gray-200 rounded" />
-            <div className="h-32 bg-gray-200 rounded" />
+            <div className="h-32 bg-muted rounded" />
+            <div className="h-32 bg-muted rounded" />
+            <div className="h-32 bg-muted rounded" />
           </div>
         </div>
       </div>
@@ -70,8 +70,8 @@ export function DynamicPage({ slug, preview = false }: DynamicPageProps) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">404</h1>
-          <p className="text-gray-600 text-lg">Page not found</p>
+          <h1 className="text-4xl font-bold text-foreground mb-4">404</h1>
+          <p className="text-muted-foreground text-lg">Page not found</p>
         </div>
       </div>
     );
@@ -84,13 +84,13 @@ export function DynamicPage({ slug, preview = false }: DynamicPageProps) {
   return (
     <div>
       {isUnpublished && showBanner && (
-        <div className="bg-yellow-50 border-b border-yellow-200 px-4 py-3 flex items-center justify-between">
-          <p className="text-yellow-800 text-sm font-medium">
+        <div className="bg-yellow-50 dark:bg-yellow-950/30 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3 flex items-center justify-between">
+          <p className="text-yellow-800 dark:text-yellow-300 text-sm font-medium">
             Preview Mode — This page is not published
           </p>
           <button
             onClick={() => setShowBanner(false)}
-            className="text-yellow-600 hover:text-yellow-800 text-sm font-medium"
+            className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 text-sm font-medium"
           >
             Dismiss
           </button>
