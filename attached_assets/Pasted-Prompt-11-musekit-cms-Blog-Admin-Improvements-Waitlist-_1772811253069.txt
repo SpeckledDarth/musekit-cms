@@ -1,0 +1,325 @@
+Prompt 11: musekit-cms — Blog Admin Improvements + Waitlist CRUD + Changelog Admin + Media Library
+Module Repl
+musekit-cms (GitHub: SpeckledDarth/musekit-cms)
+
+Context
+The CMS package has functional components for rendering content (blog, landing page, legal pages), but the admin-facing tools for managing that content are incomplete. List views lack search, sort, and filter. CRUD is partial. There is no media management.
+
+This prompt covers all the functional gaps needed to make the CMS admin world-class.
+
+Part A: Blog Admin Improvements
+File: src/blog/BlogAdmin.tsx
+
+Current state:
+Lists blog posts with title, status, date
+Has create (New Post), edit (pencil icon), delete (trash icon), publish toggle
+No search or filter
+No column sorting
+Rows are not clickable (must use small icon buttons)
+Required changes:
+Search bar — Filter posts by title or content (client-side filter is fine)
+Filter dropdowns — Filter by status (All / Published / Draft) and type (All / Blog / Changelog)
+Column sorting — Every column header (Title, Status, Type, Created, Updated) must be clickable to sort ascending/descending. Show a sort indicator arrow on the active column.
+Clickable rows — Clicking anywhere on a row should open the editor for that post (same as clicking the pencil icon). The entire row should have cursor-pointer and a hover state.
+Bulk actions — Add checkbox column. When rows are selected, show "Delete Selected" and "Publish/Unpublish Selected" action bar.
+Part B: Waitlist Admin Improvements
+File: src/marketing/WaitlistAdmin.tsx
+
+Current state:
+Lists waitlist entries (email, date)
+Has Export CSV and Refresh buttons
+No search, sort, filter, or CRUD
+Required changes:
+Search bar — Filter by email address
+Column sorting — Sortable by email and date
+Add entry — "Add Entry" button that opens a form/modal to manually add an email to the waitlist
+Delete entry — Each row should have a delete action (trash icon with confirmation dialog)
+Bulk delete — Checkbox column with "Delete Selected" action
+Row count — Show total entry count in the header
+Part C: Changelog Admin
+Current state:
+ChangelogList.tsx exists as a public-facing read-only view with category filter
+No admin interface to create, edit, or delete changelog entries
+Changelog entries are stored in a dedicated changelog_entries table (NOT the posts table)
+Required:
+Create a new component ChangelogAdmin.tsx:
+
+List view — Query the changelog_entries table, with columns: Title, Status, Category, Date
+Search/filter — Search by title, filter by category (Releases, Updates, Features, Fixes)
+Column sorting — All columns sortable
+Full CRUD:
+Create: "New Changelog Entry" button → editor with title, content, category selector
+Edit: Click row to edit
+Delete: Trash icon with confirmation
+Publish/Unpublish toggle
+Export — Re-export from src/blog/index.ts so the integration Repl can import it
+Part D: Media Library Component
+Current state:
+No file upload or media management exists anywhere in the codebase. There is no Supabase Storage integration. The admin UI has "Upload" buttons that are decorative (no click handlers).
+
+Required:
+Build a reusable MediaLibrary component that can be used from any admin page:
+
+Supabase Storage integration:
+
+Initialize Supabase Storage client (use the existing getSupabaseClient() from src/lib/supabase.ts)
+Create/use a bucket called assets (public bucket for images)
+Implement uploadFile(file: File, path: string) → returns public URL
+Implement listFiles(folder?: string) → returns file list with URLs
+Implement deleteFile(path: string) → removes file from storage
+MediaLibrary component (src/media/MediaLibrary.tsx):
+
+Grid view of all uploaded images with thumbnails
+Upload area: drag-and-drop zone + "Browse Files" button
+Upload progress indicator
+File metadata: name, size, upload date, dimensions (for images)
+Delete button on each file (with confirmation)
+Copy URL button on each file
+Search/filter by filename
+Folder support (optional but nice): organize by branding/, blog/, landing/, etc.
+ImageUpload component (src/media/ImageUpload.tsx):
+
+Smaller, inline component for use in forms (e.g., "Upload Hero Image")
+Shows current image preview if URL is set
+Click to open MediaLibrary in a modal for selection
+Or drag-and-drop directly onto the component
+Returns the selected/uploaded image URL via an onChange callback
+Props: value: string (current URL), onChange: (url: string) => void, folder?: string
+Exports:
+
+Export MediaLibrary, ImageUpload, uploadFile, listFiles, deleteFile from src/media/index.ts
+Re-export from src/index.ts
+Part E: Integration Rules
+All components must use "use client" directive
+All Supabase imports must use relative paths (NOT @/lib/supabase — use ../lib/supabase)
+All components should use the existing UI primitives from the design system or local components (Card, Button, Input, Badge, etc.)
+Use next/navigation (NOT next/router) for any routing
+Export everything from barrel src/index.ts
+Part F: Dynamic Page Renderer
+Context:
+MuseKit's page builder allows admins to create unlimited pages (About, Features, Pricing, Contact, etc.) from the admin dashboard, each built from the same 13-section toolkit. These pages are stored in the site_pages table with their sections config in a JSONB column. The CMS package needs components to render these pages on the frontend and provide dynamic navigation.
+
+Required:
+1. DynamicPage component (src/landing/DynamicPage.tsx)
+Props: slug: string, preview?: boolean
+Behavior:
+Query site_pages via Supabase for the row where slug matches and status='published'
+Preview mode: If preview=true, bypass the status='published' filter (fetch the page regardless of status). Preview mode is used by admins to preview draft/review pages. The integration Repl's route handler will verify the user is an authenticated admin before passing preview=true.
+If found: render <LandingPageBuilder sections={page.sections} />
+If not found: render a 404 message (e.g., "Page not found") or return null so the app's not-found page handles it
+While loading: show a loading skeleton or spinner
+If in preview mode and page is not published, show a subtle banner at the top: "Preview Mode — This page is not published" (dismissible)
+Export from src/landing/index.ts and src/index.ts
+2. SiteNav component (src/landing/SiteNav.tsx)
+Props: className?: string (for styling flexibility)
+Behavior:
+Query site_pages where show_in_nav=true AND status='published', ordered by sort_order
+Render navigation links: /<slug> for each page, EXCEPT the homepage (slug="home") which links to /
+Handle loading state gracefully — show nothing or a minimal skeleton, never flash an empty nav
+Cache the query result (the nav doesn't change often — use React state, no need to re-query on every render)
+Export from src/landing/index.ts and src/index.ts
+3. HomePageLoader component (src/landing/HomePageLoader.tsx)
+Props: none
+Behavior:
+Query site_pages where slug='home' and status='published'
+If found: render <LandingPageBuilder sections={page.sections} />
+If not found: fall back to <LandingPageBuilder sections={defaultLandingConfig} /> (use the existing static config as fallback so the homepage always renders something)
+While loading: show a loading skeleton
+Purpose: This replaces the static getLandingConfig() call in the homepage. The integration Repl will use this component instead of directly calling getLandingConfig().
+Export from src/landing/index.ts and src/index.ts
+Part G: SEO Architecture (CRITICAL — This is why Next.js was chosen over Vite)
+Every public-facing page must be server-rendered with complete SEO metadata. This is the primary architectural reason the project uses Next.js instead of Vite/React. Google and social media crawlers must see full metadata without executing JavaScript. All SEO functions are exported from the CMS package so the integration Repl can wire them into Next.js generateMetadata and route handlers.
+
+G1. Server-Side Metadata Generation
+Export async functions that return Next.js Metadata objects. These run server-side before the page renders, ensuring crawlers see complete metadata in the HTML response.
+
+import type { Metadata } from "next";
+// For dynamic pages (About, Features, Contact, etc.)
+export async function getPageMetadata(slug: string): Promise<Metadata>
+// For the homepage specifically
+export async function getHomePageMetadata(): Promise<Metadata>
+// For individual blog posts
+export async function getBlogPostMetadata(slug: string): Promise<Metadata>
+// For the blog list page
+export async function getBlogListMetadata(): Promise<Metadata>
+// For legal pages (terms-of-service, privacy-policy)
+export async function getLegalPageMetadata(slug: string): Promise<Metadata>
+The getLegalPageMetadata function:
+
+Maps the slug to a human-readable title (e.g., "terms-of-service" → "Terms of Service")
+Returns title: "Terms of Service | {appName}" (query settings for branding.appName)
+Returns description: A short summary appropriate for the legal page type
+Returns robots: { index: true, follow: true } (legal pages should be indexed)
+Returns alternates.canonical: {baseUrl}/{slug}
+No OG image needed — use branding logo as fallback via branding.logoUrl
+Each function must:
+
+Query Supabase server-side (use createServerClient or createAdminClient — NOT the browser client)
+Return a complete Metadata object with:
+title — from seo_title (if set) or title, appended with site name: "Features | MuseKit". Query settings table for branding.appName.
+description — from seo_description (if set) or description
+openGraph — { title, description, images: [og_image or branding logo fallback], siteName, type: 'website' } (use 'article' for blog posts)
+twitter — { card: 'summary_large_image', title, description, images }
+alternates.canonical — from canonical_url (if set) or auto-generated: https://{domain}/{slug}
+robots — { index: !no_index, follow: !no_index }
+icons — { icon: faviconUrl, apple: faviconUrl } where faviconUrl comes from branding.faviconUrl setting. If no favicon is set, omit the field (Next.js will fall back to /favicon.ico automatically).
+Query settings table for branding fallbacks: branding.appName, branding.logoUrl, branding.faviconUrl, branding.description — use these when page-specific values are missing
+G2. Dynamic Sitemap
+Export an async function for generating a complete sitemap:
+
+export async function generateSitemap(baseUrl: string): Promise<Array<{
+  url: string;
+  lastModified: Date;
+  changeFrequency: 'always' | 'hourly' | 'daily' | 'weekly' | 'monthly' | 'yearly' | 'never';
+  priority: number;
+}>>
+This function:
+
+Queries all site_pages where status='published' AND no_index=false
+Queries all posts where published=true
+Includes static routes: /pricing, /login, /signup
+Includes legal pages: /terms-of-service, /privacy-policy — priority 0.2, changeFrequency 'yearly'
+Returns entries with priorities: homepage=1.0, other pages=0.8, pricing=0.7, blog posts=0.6, auth pages=0.3, legal pages=0.2
+Uses updated_at as lastModified
+The integration Repl will use this in apps/web/src/app/sitemap.ts (Next.js built-in sitemap route)
+G3. Dynamic Robots.txt
+Export a function for generating robots.txt content:
+
+export function generateRobots(baseUrl: string): { rules: Array<{ userAgent: string; allow?: string[]; disallow?: string[] }>; sitemap: string }
+Allow all public pages
+Disallow: /admin/, /dashboard/, /api/, /login/, /signup/, /auth/
+Include sitemap URL: ${baseUrl}/sitemap.xml
+The integration Repl will use this in apps/web/src/app/robots.ts
+G4. Structured Data / JSON-LD
+Export helper functions that return JSON-LD objects for Google rich results:
+
+// Organization schema for homepage (name, logo, url, social links)
+export function getOrganizationSchema(brandSettings: BrandSettings): object
+// WebPage schema for site pages
+export function getWebPageSchema(page: SitePage, baseUrl: string): object
+// Article schema for blog posts (headline, author, datePublished, dateModified, image)
+export function getArticleSchema(post: BlogPost, baseUrl: string): object
+// BreadcrumbList schema for navigation hierarchy
+export function getBreadcrumbSchema(breadcrumbs: Array<{ name: string; url: string }>): object
+// FAQPage schema for pages with FAQ sections (huge SEO win — appears as rich results in Google)
+export function getFAQSchema(faqs: Array<{ question: string; answer: string }>): object
+Each returns a plain object ready to be serialized as <script type="application/ld+json">
+The getFAQSchema function is especially valuable — Google shows FAQ rich results directly in search, dramatically increasing click-through rates. Auto-detect FAQ sections in page config and generate this schema.
+Export all from src/seo/index.ts and re-export from src/index.ts
+G5. next/image Optimization
+All landing page section components that currently use <img> tags must be updated to use next/image from the next/image package:
+
+Component	Images to update
+HeroSection	Background image
+FounderLetter	Portrait image
+ScreenshotShowcase	Screenshot images
+ImageCollage	Collage images
+ImageTextBlocks	Block images
+TestimonialCarousel	Avatar images
+LogoMarquee	Logo images
+For each:
+
+Replace <img src={url} /> with <Image src={url} alt={...} width={...} height={...} />
+Set meaningful alt text from section props (headline, name, alt field)
+Use sizes prop for responsive images
+Use loading="lazy" for below-the-fold images (default behavior)
+Use priority for above-the-fold hero images
+Benefits: automatic WebP/AVIF conversion, responsive srcset, blur placeholder, proper width/height preventing layout shift (Core Web Vitals)
+G6. Heading Hierarchy
+The LandingPageBuilder must enforce proper HTML heading structure for SEO:
+
+Only ONE <h1> per page — typically the hero section headline
+Section titles (Feature Cards title, FAQ title, Process Steps title, etc.) must use <h2>
+Sub-items within sections (individual feature card titles, FAQ questions, step titles) must use <h3>
+Update any section components that violate this hierarchy
+The hero section should receive a prop or context indicating whether it's the first section (gets <h1>) or a subsequent hero (gets <h2>)
+Blog posts: When rendering Markdown blog post content, ensure the post title renders as <h1> and any Markdown headings (## Heading) render as <h2> and below. If the Markdown content contains # H1 headings, downshift them to <h2> to avoid duplicate H1 tags on the page (the post title is already the H1). This can be handled by the Markdown renderer configuration (e.g., remark plugin or custom heading component that maps h1 → h2, h2 → h3, etc.).
+
+G7. Blog Post SEO
+The existing blog system must support full SEO:
+
+SEO title override per post — separate from display title (use seo_title field if it exists in posts table, or add a note that it needs to be added)
+Meta description per post — from excerpt if not explicitly set
+OG image per post — from a featured image field (if it exists)
+Article structured data — use getArticleSchema() to generate headline, author, datePublished, dateModified, image
+The blog list page should use SSR metadata via getBlogListMetadata()
+G8. Performance Headers (Integration Wiring Notes)
+Add these to next.config.js headers configuration:
+
+headers: [
+  { key: 'X-Content-Type-Options', value: 'nosniff' },
+  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+]
+Add preconnect hints in the root layout:
+
+<link rel="preconnect" href="{SUPABASE_URL}" />
+<link rel="dns-prefetch" href="{SUPABASE_URL}" />
+Add cache headers for static assets (images, fonts, CSS/JS):
+
+Cache-Control: public, max-age=31536000, immutable
+Part H: Error Boundaries
+PageErrorBoundary component (src/components/PageErrorBoundary.tsx)
+Wraps page content, catches React rendering errors
+On error: shows a branded UI with:
+MuseKit logo (from branding settings)
+"Something went wrong" heading
+Error message (in development mode only — hide in production)
+"Try Again" button that resets the error boundary
+"Go Home" link to /
+Export for use across the app
+Integration Wiring
+The integration Repl will create:
+
+apps/web/src/app/error.tsx — uses PageErrorBoundary, must be a client component with "use client" directive
+apps/web/src/app/global-error.tsx — global fallback error boundary, also client component
+STANDARD E Cross-Reference
+Apply all UX Standards from Prompt 09 STANDARD E to every component in this module:
+
+Toast notifications (sonner) on every mutation
+Empty states on every list with zero rows
+Confirmation dialogs on all destructive operations
+Dark mode (dark: classes) on all UI
+Loading skeletons on every data-fetching page
+Unsaved changes warning on every form
+Form validation with inline error messages
+Relative timestamps with hover tooltips
+Row counts in list page titles
+Breadcrumbs on every detail/drill-down page
+Pagination (25 rows/page, page in URL)
+URL-persisted filters (search, filter, sort in query params)
+Bulk operations (checkbox column, floating action bar)
+CSV export on every list view
+Audit logging on every create/update/delete mutation
+Part I: Integration Rules (applies to all parts)
+All React components must use "use client" directive
+Exception: SEO helper functions (Part G: getPageMetadata, generateSitemap, generateRobots, JSON-LD helpers) must NOT use "use client" — they run server-side
+All Supabase imports must use relative paths (NOT @/lib/supabase — use ../lib/supabase)
+All components should use the existing UI primitives from the design system or local components (Card, Button, Input, Badge, etc.)
+Use next/navigation (NOT next/router) for any routing
+Export everything from barrel src/index.ts
+SEO functions should be exported from src/seo/index.ts and re-exported from src/index.ts
+After Fix
+Push to GitHub. The integration Repl will pull the updated src/ files and wire:
+
+ChangelogAdmin into an admin page
+MediaLibrary into an admin page
+ImageUpload into branding and content setup pages
+DynamicPage into apps/web/src/app/[slug]/page.tsx (new catch-all route)
+HomePageLoader into apps/web/src/app/page.tsx (replacing getLandingConfig())
+SiteNav into apps/web/src/components/header.tsx (replacing hardcoded nav links)
+Full Integration Wiring Checklist:
+Integration Repl File	What to Wire
+apps/web/src/app/page.tsx	Import getHomePageMetadata for generateMetadata, render HomePageLoader, include Organization JSON-LD via getOrganizationSchema
+apps/web/src/app/[slug]/page.tsx	Import getPageMetadata for generateMetadata, render DynamicPage, support ?preview=true (check admin auth server-side), include FAQ JSON-LD if page has FAQ section
+apps/web/src/app/blog/page.tsx	Import getBlogListMetadata for generateMetadata
+apps/web/src/app/blog/[slug]/page.tsx	Import getBlogPostMetadata for generateMetadata, include Article JSON-LD via getArticleSchema
+apps/web/src/app/legal/[slug]/page.tsx	Import getLegalPageMetadata for generateMetadata, render legal page content
+apps/web/src/app/terms-of-service/page.tsx	Redirect to /legal/terms-of-service or render directly with getLegalPageMetadata
+apps/web/src/app/privacy-policy/page.tsx	Redirect to /legal/privacy-policy or render directly with getLegalPageMetadata
+apps/web/src/app/sitemap.ts	Import generateSitemap, call with base URL
+apps/web/src/app/robots.ts	Import generateRobots, call with base URL
+apps/web/src/app/error.tsx	"use client", import and render PageErrorBoundary
+apps/web/src/app/global-error.tsx	"use client", minimal error UI with retry + home link
+next.config.js	Add security + performance headers, preconnect hints
+Root layout	Add preconnect <link> tags for Supabase URL
