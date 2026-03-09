@@ -1,26 +1,27 @@
-import { createClient } from "@supabase/supabase-js";
+import { createBrowserClient, createAdminClient } from "@musekit/database";
+
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+
+export function getBrowserClient() {
+  if (browserClient) return browserClient;
+  try {
+    browserClient = createBrowserClient();
+    return browserClient;
+  } catch (error) {
+    console.error("CMS: Failed to create Supabase browser client:", error);
+    throw error;
+  }
+}
 
 export function getSupabaseClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-  return createClient(url, key);
+  return getBrowserClient();
 }
 
 export function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY!;
-  return createClient(url, key, {
-    auth: { autoRefreshToken: false, persistSession: false },
-  });
-}
-
-let browserClient: ReturnType<typeof createClient> | null = null;
-
-export function getBrowserClient() {
-  if (!browserClient) {
-    const url = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
-    browserClient = createClient(url, key);
+  try {
+    return createAdminClient();
+  } catch (error) {
+    console.error("CMS: Failed to create Supabase admin client:", error);
+    throw error;
   }
-  return browserClient;
 }

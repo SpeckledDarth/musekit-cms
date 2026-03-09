@@ -42,6 +42,8 @@ export { MediaLibrary, MediaPicker, ImageUpload, uploadFile, listFiles, deleteFi
 export type { StorageFile } from "./media";
 
 export { PageErrorBoundary } from "./components";
+export { BrandedHeader } from "./components";
+export { BrandedFooter } from "./components";
 
 export {
   getBrandSettings,
