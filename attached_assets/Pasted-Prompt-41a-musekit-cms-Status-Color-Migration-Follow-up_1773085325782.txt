@@ -1,0 +1,104 @@
+Prompt 41a: musekit-cms — Status Color Migration (Follow-up Fix)
+Module Repl
+musekit-cms (GitHub: SpeckledDarth/musekit-cms)
+
+Context
+Prompt 41 successfully migrated all hardcoded grays to semantic classes but left ~50 hardcoded status colors (bg-green-*, bg-red-*, bg-yellow-*, text-green-*, text-red-*, text-yellow-*) across 14 files. These need to be migrated to the semantic status system so they respond to CSS Dashboard customization.
+
+The Tailwind config already has destructive mapped. You need to ADD success, warning, danger, and info color definitions to tailwind.config.ts so classes like bg-success, text-success, bg-danger, text-danger, bg-warning, text-warning resolve correctly.
+
+Step 1: Add Status Colors to tailwind.config.ts
+Add these to the theme.extend.colors section:
+
+success: {
+  DEFAULT: "hsl(var(--success, 142 76% 36%))",
+  foreground: "hsl(var(--success-foreground, 0 0% 100%))",
+},
+warning: {
+  DEFAULT: "hsl(var(--warning, 38 92% 50%))",
+  foreground: "hsl(var(--warning-foreground, 0 0% 0%))",
+},
+danger: {
+  DEFAULT: "hsl(var(--danger, 0 84% 60%))",
+  foreground: "hsl(var(--danger-foreground, 0 0% 100%))",
+},
+info: {
+  DEFAULT: "hsl(var(--info, 221 83% 53%))",
+  foreground: "hsl(var(--info-foreground, 0 0% 100%))",
+},
+Step 2: Migrate Status Colors Across 14 Files
+Replacement Rules
+Error/danger patterns:
+
+text-red-500 / text-red-600 / text-red-700 → text-danger
+text-red-300 / text-red-400 (dark mode variants) → text-danger
+bg-red-50 / bg-red-100 → bg-danger/10
+bg-red-600 → bg-danger
+bg-red-900/20 / bg-red-900/30 / bg-red-950/30 → bg-danger/10
+border-red-200 / border-red-800 → border-danger/20
+hover:bg-red-700 → hover:bg-danger/90
+hover:text-red-500 / hover:text-red-600 → hover:text-danger
+text-white on red buttons → text-danger-foreground
+Success/green patterns:
+
+text-green-600 / text-green-700 / text-green-800 → text-success
+text-green-300 / text-green-400 (dark mode) → text-success
+bg-green-50 / bg-green-100 → bg-success/10
+bg-green-600 → bg-success
+bg-green-900/20 / bg-green-900/30 → bg-success/10
+border-green-200 / border-green-800 → border-success/20
+hover:bg-green-700 → hover:bg-success/90
+text-white on green buttons → text-success-foreground
+Warning/yellow patterns:
+
+text-yellow-600 / text-yellow-800 → text-warning
+text-yellow-300 / text-yellow-400 (dark mode) → text-warning
+bg-yellow-50 / bg-yellow-100 → bg-warning/10
+bg-yellow-600 → bg-warning
+bg-yellow-900/30 / bg-yellow-950/30 → bg-warning/10
+border-yellow-200 / border-yellow-800 → border-warning/20
+hover:bg-yellow-700 → hover:bg-warning/90
+hover:text-yellow-800 / hover:text-yellow-200 → hover:text-warning
+text-white on yellow buttons → text-warning-foreground
+Files to Fix (14 total)
+src/admin/AdminAuthGate.tsx (1 instance) — error alert box
+src/blog/BlogAdmin.tsx (~10 instances) — publish/draft/archive action buttons, status badges, validation errors, delete hover
+src/blog/ChangelogAdmin.tsx (~10 instances) — same patterns as BlogAdmin
+src/blog/ChangelogList.tsx (1 instance) — category badge map (update: key)
+src/components/PageErrorBoundary.tsx (1 instance) — error display pre block
+src/custom-pages/CustomPageEditor.tsx (~8 instances) — publish toggle, status badges, validation error, archive button, delete hover
+src/landing/DynamicPage.tsx (3 instances) — draft preview banner (yellow)
+src/lib/toast.tsx (2 instances) — error toast variant styling and icon
+src/marketing/FeedbackWidget.tsx (2 instances) — success message, error message
+src/marketing/WaitlistAdmin.tsx (~6 instances) — approve button, validation error, delete button, delete hover
+src/marketing/WaitlistForm.tsx (2 instances) — success message, error message
+src/media/ImageUpload.tsx (2 instances) — delete button, error text
+src/media/MediaLibrary.tsx (~6 instances) — upload error alert, success check, delete button
+src/media/MediaPicker.tsx (~4 instances) — upload error alert
+Special Cases
+Dark mode dual-class patterns like text-red-700 dark:text-red-300:
+
+Replace the ENTIRE pair with single text-danger — Tailwind's CSS variable system handles dark mode automatically when the variable is defined in both :root and .dark in globals.css.
+Publish toggle in CustomPageEditor (bg-green-600 for published, bg-muted for unpublished):
+
+Published state: bg-success
+Text label: text-success / text-muted-foreground
+ChangelogList category badge map:
+
+update: → "bg-success/10 text-success"
+Toast error variant:
+
+"bg-red-900 border-red-700 text-red-100" → "bg-danger border-danger/70 text-danger-foreground"
+Icon: text-red-400 → text-danger
+What NOT to Do
+Do NOT change any gray-to-semantic replacements already done by Prompt 41
+Do NOT change any component APIs or export signatures
+Do NOT change CMS data fetching logic or Supabase queries
+Do NOT change the LandingPageBuilder section type system
+Do NOT touch font-mono on editor textareas (acceptable)
+Verification Checklist
+ tailwind.config.ts has success, warning, danger, info color definitions
+ grep -r "bg-green-\|bg-red-\|bg-yellow-\|text-green-\|text-red-\|text-yellow-\|border-green-\|border-red-\|border-yellow-\|hover:bg-green-\|hover:bg-red-\|hover:bg-yellow-\|hover:text-red-\|hover:text-yellow-" src/ returns zero results
+ All 14 files listed above have been updated
+ npx tsc --noEmit passes with zero errors
+ No changes to any exports or component APIs
