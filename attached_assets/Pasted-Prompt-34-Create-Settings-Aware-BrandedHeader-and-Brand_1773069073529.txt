@@ -1,0 +1,171 @@
+Prompt 34: Create Settings-Aware BrandedHeader and BrandedFooter Components
+Context
+Production Target
+Next.js 14.2.18 (App Router) + Supabase + Vercel
+This module lives at packages/cms/ in a Turborepo monorepo
+Current State (verified March 9, 2026)
+No BrandedHeader or BrandedFooter component exists in the CMS package
+The web app uses a hardcoded Header at apps/web/src/components/header.tsx with:
+A hardcoded SVG lightning bolt icon
+The text "MuseKit" hardcoded
+Hardcoded nav links (Features, Pricing, Docs)
+All hardcoded gray Tailwind classes (text-gray-600, border-gray-200, etc.)
+The web app uses a hardcoded Footer at apps/web/src/components/footer.tsx
+HomePageLoader exists at src/landing/HomePageLoader.tsx — already queries site_pages table
+CMS Supabase client at src/lib/supabase.ts uses ! non-null assertion — crashes unhelpfully
+Existing CMS exports: getBrowserClient, getSupabaseClient, getSupabaseAdmin
+Admin Branding Keys (from packages/admin/src/pages/setup/branding.tsx)
+The admin branding page saves these settings (under branding.* prefix):
+
+appName (default: "MuseKit")
+description
+logoUrl (image upload)
+faviconUrl (image upload)
+primaryColor (default: "#3b82f6")
+heroStyle (full-width, split, video, pattern, floating-mockup, photo-collage)
+headerBgColor (default: "#ffffff")
+headerTextColor (default: "#000000")
+headerOpacity (0-100, default: "100")
+headerSticky (default: "true")
+headerTransparent (default: false)
+headerBorder (default: "true")
+footerBgColor, footerTextColor, footerLayout ("4-column", "minimal", "centered")
+Admin Social Keys (from packages/admin/src/pages/setup/social.tsx)
+Saves under social.* prefix: twitter, linkedin, github, youtube, instagram, facebook, discord, tiktok
+
+Fix — Create Two New Components
+Component 1: BrandedHeader
+New file: src/components/BrandedHeader.tsx
+Create a "use client" component that accepts ALL data via props (not hooks). The integration Repl will pass settings.
+
+Props interface:
+
+interface BrandedHeaderProps {
+  appName?: string;
+  logoUrl?: string;
+  headerBgColor?: string;
+  headerTextColor?: string;
+  headerOpacity?: string;
+  headerSticky?: boolean;
+  headerTransparent?: boolean;
+  headerBorder?: boolean;
+  navLinks?: { label: string; href: string }[];
+}
+Behavior:
+
+If logoUrl provided and non-empty, render <img>. Otherwise render the default SVG lightning bolt icon (copy from the current hardcoded header).
+Display appName next to logo. Default: "MuseKit".
+Apply headerBgColor/headerTextColor via inline style. Default: white bg, dark text.
+Apply headerOpacity (0-100, convert to 0-1). Default: 100%.
+If headerSticky (default true): add sticky top-0 z-50.
+If headerTransparent: set background transparent.
+If headerBorder (default true): show bottom border.
+Render navLinks. Default: [{label: "Blog", href: "/blog"}, {label: "Pricing", href: "/pricing"}].
+Include Login/Sign Up buttons on the right (matching current header design).
+Use semantic Tailwind classes (bg-background, text-foreground, border-border) not hardcoded grays. Inline styles from props override these.
+Must render identically to the current header when called with zero props.
+
+Component 2: BrandedFooter
+New file: src/components/BrandedFooter.tsx
+"use client" component, all data via props.
+
+Props interface:
+
+interface BrandedFooterProps {
+  appName?: string;
+  description?: string;
+  footerBgColor?: string;
+  footerTextColor?: string;
+  footerLayout?: "4-column" | "minimal" | "centered";
+  socialLinks?: Record<string, string>;
+  navLinks?: { label: string; href: string }[];
+}
+Behavior:
+
+Display appName and description. Defaults: "MuseKit", "".
+Apply footerBgColor/footerTextColor via inline style.
+Layout based on footerLayout:
+"4-column" (default): Logo/description + Product + Company + Social in 4 columns
+"minimal": Single row — logo, copyright, social icons
+"centered": Centered logo, nav links, social icons, copyright
+For each key in socialLinks, render appropriate social icon with link. Support: twitter, linkedin, github, youtube, instagram, facebook, discord, tiktok.
+Copyright line: © {currentYear} {appName}. All rights reserved.
+If no socialLinks, hide social section.
+Use semantic Tailwind classes, not hardcoded grays.
+Change 3: Update Supabase Client
+File: src/lib/supabase.ts
+Replace ! non-null assertions with import from @musekit/database:
+
+import { createBrowserClient, createAdminClient } from "@musekit/database";
+let browserClient: ReturnType<typeof createBrowserClient> | null = null;
+export function getBrowserClient() {
+  if (browserClient) return browserClient;
+  try {
+    browserClient = createBrowserClient();
+    return browserClient;
+  } catch (error) {
+    console.error("CMS: Failed to create Supabase browser client:", error);
+    throw error;
+  }
+}
+export function getSupabaseClient() {
+  return getBrowserClient();
+}
+export function getSupabaseAdmin() {
+  try {
+    return createAdminClient();
+  } catch (error) {
+    console.error("CMS: Failed to create Supabase admin client:", error);
+    throw error;
+  }
+}
+Preserves existing function names: getBrowserClient, getSupabaseClient, getSupabaseAdmin.
+
+Change 4: Export New Components
+File: src/index.ts
+Add:
+
+export { BrandedHeader } from "./components/BrandedHeader";
+export { BrandedFooter } from "./components/BrandedFooter";
+Critical Rules
+Both components are "use client"
+Both accept ALL data via props — do NOT call useAppSettings() directly
+Both must render correctly with zero props — sensible defaults matching current site appearance
+Use semantic Tailwind classes (bg-background, text-foreground, border-border) for base styling, with inline style overrides from props
+Do NOT modify HomePageLoader.tsx or any existing component
+Preserve existing supabase.ts function names
+Verification
+File existence
+ls -la src/components/BrandedHeader.tsx src/components/BrandedFooter.tsx
+Expected: both exist.
+
+Exported from index
+grep -n "BrandedHeader\|BrandedFooter" src/index.ts
+Expected: both in export statements.
+
+"use client" directive
+head -1 src/components/BrandedHeader.tsx && head -1 src/components/BrandedFooter.tsx
+Expected: both show "use client";
+
+No hardcoded grays in new components
+grep -n "gray-" src/components/BrandedHeader.tsx src/components/BrandedFooter.tsx
+Expected: 0 results — all semantic classes.
+
+Supabase client uses @musekit/database
+grep -n "@musekit/database" src/lib/supabase.ts
+Expected: at least 1 result.
+
+Per-file checklist
+ src/components/BrandedHeader.tsx — new "use client", props-based, semantic classes
+ src/components/BrandedHeader.tsx — renders logo image or SVG fallback
+ src/components/BrandedHeader.tsx — renders correctly with zero props (matches current header)
+ src/components/BrandedFooter.tsx — new "use client", props-based, semantic classes
+ src/components/BrandedFooter.tsx — supports 3 layout variants
+ src/components/BrandedFooter.tsx — renders social icons for supported platforms
+ src/components/BrandedFooter.tsx — renders correctly with zero props
+ src/lib/supabase.ts — uses @musekit/database, preserves function names
+ src/index.ts — exports both components
+ No existing components modified
+TypeScript compiles
+npx tsc --noEmit
+Expected: no errors.
