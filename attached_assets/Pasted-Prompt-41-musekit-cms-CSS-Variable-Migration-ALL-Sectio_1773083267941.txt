@@ -1,0 +1,186 @@
+Prompt 41: musekit-cms — CSS Variable Migration (ALL Sections, Blog, Changelog, Legal, Marketing, SEO)
+Module Repl
+musekit-cms (GitHub: SpeckledDarth/musekit-cms)
+
+Context
+The CMS package is the largest visual surface in MuseKit. It renders the public-facing landing page (13 section types via LandingPageBuilder), blog posts, changelog entries, custom pages, legal pages, and marketing widgets (cookie consent, announcements, feedback, waitlist). It also handles SEO metadata generation.
+
+Currently, the Tailwind config uses var(--) instead of hsl(var(--)) (breaking opacity modifiers), landing sections use hardcoded rounded-xl/2xl/3xl, blog/changelog components use hardcoded grays, and marketing widgets use hardcoded colors. The SEO metadata is missing a themeColor property.
+
+After Prompt 38 (ThemeInjector) and Prompt 39 (shared Tailwind preset), all CSS variables and mappings are available.
+
+Reference: See docs/current/css-variable-contract.md for the complete list of available CSS variables, their types, defaults, and recommended Tailwind class replacements.
+
+Current State (verified March 9, 2026)
+Tailwind Config
+tailwind.config.ts maps colors using var(--) pattern (WRONG — should be hsl(var(--)) for opacity modifier support). Missing: status colors, chart colors, fonts, shadows, radius.
+
+Landing Page Sections (13 types in src/landing/)
+HeroSection, LogoMarquee, AnimatedCounters, FeatureCards, TestimonialCarousel, ProcessSteps, FAQSection, FounderLetter, ComparisonBars, ScreenshotShowcase, BottomHeroCTA, ImageCollage, ImageTextBlocks
+
+~15+ hardcoded rounded-xl, rounded-2xl, rounded-3xl across these sections.
+
+Other CMS Components
+FeatureSubPage.tsx — feature deep-dive pages
+DynamicPage.tsx — renders pages from site_pages table
+HomePageLoader.tsx — skeleton (already uses bg-muted — good)
+SiteNav.tsx — landing page navigation
+Blog Components (src/blog/)
+BlogPost.tsx — renders markdown with react-markdown; prose styling needs palette fonts/colors
+BlogList.tsx — blog index page
+BlogEditor.tsx — admin editor (hardcoded font-mono)
+BlogAdmin.tsx — admin listing
+ChangelogList.tsx — changelog entries
+ChangelogAdmin.tsx — admin changelog editor (hardcoded font-mono)
+Custom Pages & Legal (src/custom-pages/, src/legal/)
+CustomPage.tsx — renders markdown content
+CustomPageEditor.tsx — admin editor
+LegalPageLayout.tsx — terms/privacy rendering
+Marketing Widgets (src/marketing/)
+CookieConsentBanner.tsx — GDPR banner
+AnnouncementBar.tsx — top banner
+FeedbackWidget.tsx — feedback collection
+WaitlistForm.tsx — early access form
+WaitlistAdmin.tsx — admin waitlist management
+Layout Components (src/components/)
+BrandedHeader.tsx — header with brand settings
+BrandedFooter.tsx — footer with brand settings
+PageErrorBoundary.tsx — error fallback
+SEO (src/seo/ and src/marketing/)
+src/seo/metadata.ts — generates Next.js Metadata objects
+src/marketing/SEOHead.tsx — React component for meta tags (note: lives in marketing/, not seo/)
+src/seo/json-ld.ts — structured data
+src/seo/robots.ts, src/seo/sitemap.ts — non-visual
+Missing: themeColor property in metadata
+Media (src/media/)
+MediaLibrary.tsx, MediaPicker.tsx, ImageUpload.tsx
+The Fix
+1. Update tailwind.config.ts
+Import the shared preset and use it:
+
+import { tailwindPreset } from "@musekit/design-system";
+const config = {
+  presets: [tailwindPreset],
+  content: ["./src/**/*.{js,ts,jsx,tsx}"],
+  theme: {
+    extend: {
+      // KEEP existing animation/keyframe configs (accordion, marquee, count-up)
+      // REMOVE duplicate color definitions — they come from the preset now
+    },
+  },
+  // ... keep existing plugins
+};
+This fixes the var(--) → hsl(var(--)) issue automatically.
+
+2. Migrate ALL 13 Landing Page Sections
+For EVERY file in src/landing/:
+
+Border radius: Replace hardcoded values with semantic:
+
+rounded-xl → rounded-lg (uses var(--radius))
+rounded-2xl → rounded-lg or rounded-[var(--radius)]
+rounded-3xl → rounded-[var(--radius)]
+Colors: Apply standard replacement rules:
+
+bg-white → bg-background
+bg-gray-* → bg-muted or bg-accent
+text-gray-* → text-foreground or text-muted-foreground
+border-gray-* → border-border
+Specific sections to check:
+
+HeroSection.tsx — hero background, CTA buttons, text colors
+FeatureCards.tsx — card backgrounds, borders, text
+ImageCollage.tsx — image container borders, rounded corners
+ScreenshotShowcase.tsx — screenshot frame styling
+FounderLetter.tsx — letter card styling, rounded corners
+TestimonialCarousel.tsx — testimonial card backgrounds
+FAQSection.tsx — accordion styling
+ComparisonBars.tsx — bar colors (should use accent/chart variables)
+AnimatedCounters.tsx — counter styling
+ProcessSteps.tsx — step indicators, connectors
+LogoMarquee.tsx — container styling
+BottomHeroCTA.tsx — CTA button and background
+ImageTextBlocks.tsx — text block backgrounds
+3. Migrate Blog & Changelog Components
+BlogPost.tsx:
+
+The react-markdown rendered content needs prose styling that respects the palette
+Ensure prose class (if using @tailwindcss/typography) uses palette colors
+Headings should inherit font-heading
+Body text should inherit font-body
+Link colors should use text-primary
+Code blocks should use appropriate muted backgrounds
+BlogList.tsx: Replace hardcoded card/text grays with semantic classes.
+
+BlogEditor.tsx, ChangelogAdmin.tsx: font-mono for code editor textareas is acceptable — but any hardcoded background/border grays must be replaced.
+
+ChangelogList.tsx: Replace hardcoded category badge colors and entry card styling.
+
+4. Migrate Custom Pages & Legal
+CustomPage.tsx: Same prose styling fixes as BlogPost.
+
+LegalPageLayout.tsx: Replace hardcoded background/text colors. Legal pages should look professional but branded.
+
+5. Migrate Marketing Widgets
+CookieConsentBanner.tsx: Replace hardcoded banner background, button colors, text colors. Accept button should use bg-primary text-primary-foreground. Decline should use bg-muted text-muted-foreground.
+
+AnnouncementBar.tsx: Replace hardcoded background with bg-primary or accent color. Text with text-on-primary.
+
+FeedbackWidget.tsx: Replace hardcoded form styling.
+
+WaitlistForm.tsx, WaitlistAdmin.tsx: Replace hardcoded colors.
+
+6. Migrate Layout Components
+BrandedHeader.tsx, BrandedFooter.tsx: These may already partially use brand settings. Ensure all remaining hardcoded colors are replaced.
+
+SiteNav.tsx: Replace hardcoded nav link colors, active state, hover states.
+
+PageErrorBoundary.tsx: Replace hardcoded error fallback colors with bg-destructive/10 text-destructive or similar.
+
+7. Migrate Media Components
+Replace hardcoded colors in MediaLibrary.tsx, MediaPicker.tsx, ImageUpload.tsx.
+
+8. Add themeColor to SEO Metadata
+In src/seo/metadata.ts, the functions that generate Next.js Metadata objects should include:
+
+themeColor: brand.primaryColor || "#2200FF"
+This makes mobile browsers show the brand color in the address bar.
+
+What NOT to Do
+Do NOT change any CMS data fetching logic or Supabase queries
+Do NOT change the LandingPageBuilder section type system or DynamicPage rendering logic
+Do NOT change the react-markdown rendering pipeline — only adjust CSS classes applied to the prose container
+Do NOT change any component APIs or export signatures
+Do NOT remove the existing accordion/marquee/count-up animations from tailwind config
+Do NOT change HomePageLoader.tsx — it already uses bg-muted (correct)
+Do NOT change json-ld.ts or sitemap.ts — they don't have visual output
+Verification Checklist
+Tailwind Config
+ tailwind.config.ts imports and uses tailwindPreset from @musekit/design-system
+ Existing animations (accordion, marquee, count-up) are preserved
+ Duplicate color definitions removed (now inherited from preset)
+Landing Page Sections
+ grep -r "rounded-xl\|rounded-2xl\|rounded-3xl" src/landing/ returns zero results (all replaced with semantic radius)
+ grep -r "bg-white\|bg-gray-" src/landing/ returns zero results
+ grep -r "text-gray-" src/landing/ returns zero results
+ grep -r "border-gray-" src/landing/ returns zero results
+ All 13 section components have been updated
+Blog & Changelog
+ grep -r "bg-white\|bg-gray-\|text-gray-\|border-gray-" src/blog/ returns zero results
+ BlogPost.tsx prose container uses palette fonts and colors
+ ChangelogList.tsx category badges use semantic colors
+Custom Pages & Legal
+ grep -r "bg-white\|bg-gray-\|text-gray-\|border-gray-" src/custom-pages/ src/legal/ returns zero results
+Marketing Widgets
+ grep -r "bg-white\|bg-gray-\|text-gray-\|border-gray-" src/marketing/ returns zero results
+ CookieConsentBanner.tsx uses bg-primary for accept button
+ AnnouncementBar.tsx uses branded background
+Layout
+ grep -r "bg-white\|bg-gray-\|text-gray-\|border-gray-" src/components/ returns zero results
+ BrandedHeader.tsx and BrandedFooter.tsx use semantic classes
+SEO
+ metadata.ts includes themeColor in generated Metadata objects
+ themeColor reads from brand's primary color
+Build
+ npx tsc --noEmit passes with zero errors
+ No changes to any exports or component APIs
