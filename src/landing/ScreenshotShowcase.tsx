@@ -29,11 +29,11 @@ export function ScreenshotShowcase({
           </div>
         )}
         <div className="relative">
-          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-primary/10 to-transparent rounded-3xl -z-10 scale-110" />
+          <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-primary/10 to-transparent rounded-[var(--radius)] -z-10 scale-110" />
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {screenshots.map((screenshot, i) => (
               <div key={i} className="group relative">
-                <div className="overflow-hidden rounded-xl border border-border shadow-lg">
+                <div className="overflow-hidden rounded-lg border border-border shadow-lg">
                   <div className="relative w-full aspect-video">
                     <Image
                       src={screenshot.src}

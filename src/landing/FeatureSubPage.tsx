@@ -63,7 +63,7 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
       <div className="max-w-4xl mx-auto px-4 py-12 animate-pulse">
         <div className="h-8 bg-muted rounded w-2/3 mb-4" />
         <div className="h-4 bg-muted rounded w-1/2 mb-8" />
-        <div className="h-64 bg-muted rounded-xl" />
+        <div className="h-64 bg-muted rounded-lg" />
       </div>
     );
   }
@@ -101,7 +101,7 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
             alt={feature.title}
             fill
             sizes="(max-width: 768px) 100vw, 1024px"
-            className="rounded-xl shadow-2xl object-cover"
+            className="rounded-lg shadow-2xl object-cover"
             priority
           />
         </div>
@@ -125,7 +125,7 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
                     alt={section.title}
                     fill
                     sizes="(max-width: 768px) 100vw, 50vw"
-                    className="rounded-xl shadow-lg object-cover"
+                    className="rounded-lg shadow-lg object-cover"
                   />
                 </div>
               </div>
@@ -135,7 +135,7 @@ export function FeatureSubPage({ slug }: FeatureSubPageProps) {
       </div>
 
       {feature.ctaText && (
-        <div className="text-center mt-16 py-12 bg-gradient-to-br from-primary/10 to-accent/10 rounded-2xl">
+        <div className="text-center mt-16 py-12 bg-gradient-to-br from-primary/10 to-accent/10 rounded-lg">
           <h2 className="text-2xl font-bold mb-4">Ready to get started?</h2>
           <a
             href={feature.ctaLink || "#"}

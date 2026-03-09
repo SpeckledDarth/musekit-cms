@@ -48,7 +48,7 @@ export function FeatureCards({
             return (
               <div
                 key={i}
-                className="p-6 rounded-xl border border-border bg-card hover:shadow-lg transition-shadow"
+                className="p-6 rounded-lg border border-border bg-card hover:shadow-lg transition-shadow"
               >
                 <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center mb-4">
                   <IconComponent className="w-6 h-6 text-primary" />

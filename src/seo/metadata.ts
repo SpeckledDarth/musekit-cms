@@ -6,6 +6,7 @@ interface BrandSettings {
   logoUrl: string;
   faviconUrl: string;
   description: string;
+  primaryColor: string;
 }
 
 const DEFAULT_BRAND: BrandSettings = {
@@ -13,6 +14,7 @@ const DEFAULT_BRAND: BrandSettings = {
   logoUrl: "",
   faviconUrl: "/favicon.ico",
   description: "Build and launch your product faster",
+  primaryColor: "#2200FF",
 };
 
 export async function getBrandSettings(): Promise<BrandSettings> {
@@ -23,6 +25,7 @@ export async function getBrandSettings(): Promise<BrandSettings> {
       "branding.logoUrl",
       "branding.faviconUrl",
       "branding.description",
+      "branding.primaryColor",
     ];
     const { data } = await supabase
       .from("settings")
@@ -41,6 +44,7 @@ export async function getBrandSettings(): Promise<BrandSettings> {
       logoUrl: settings["branding.logoUrl"] || DEFAULT_BRAND.logoUrl,
       faviconUrl: settings["branding.faviconUrl"] || DEFAULT_BRAND.faviconUrl,
       description: settings["branding.description"] || DEFAULT_BRAND.description,
+      primaryColor: settings["branding.primaryColor"] || DEFAULT_BRAND.primaryColor,
     };
   } catch {
     return DEFAULT_BRAND;
@@ -93,6 +97,7 @@ export async function getPageMetadata(slug: string): Promise<Metadata> {
       ? { index: false, follow: false }
       : { index: true, follow: true },
     icons: { icon: brand.faviconUrl },
+    themeColor: brand.primaryColor,
   };
 }
 
@@ -135,6 +140,7 @@ export async function getHomePageMetadata(): Promise<Metadata> {
     }),
     robots: { index: true, follow: true },
     icons: { icon: brand.faviconUrl },
+    themeColor: brand.primaryColor,
   };
 }
 
@@ -167,6 +173,7 @@ export async function getBlogPostMetadata(slug: string): Promise<Metadata> {
       },
       robots: { index: true, follow: true },
       icons: { icon: brand.faviconUrl },
+      themeColor: brand.primaryColor,
     };
   }
 
@@ -195,6 +202,7 @@ export async function getBlogPostMetadata(slug: string): Promise<Metadata> {
       },
       robots: { index: true, follow: true },
       icons: { icon: brand.faviconUrl },
+      themeColor: brand.primaryColor,
     };
   }
 
@@ -226,6 +234,7 @@ export async function getBlogListMetadata(): Promise<Metadata> {
     },
     robots: { index: true, follow: true },
     icons: { icon: brand.faviconUrl },
+    themeColor: brand.primaryColor,
   };
 }
 
@@ -261,5 +270,6 @@ export async function getLegalPageMetadata(slug: string): Promise<Metadata> {
     },
     robots: { index: true, follow: true },
     icons: { icon: brand.faviconUrl },
+    themeColor: brand.primaryColor,
   };
 }

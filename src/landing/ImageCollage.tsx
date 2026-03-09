@@ -37,7 +37,7 @@ export function ImageCollage({
                     alt={img.alt}
                     fill
                     sizes="(max-width: 768px) 192px, 256px"
-                    className="object-cover rounded-xl shadow-xl border-4 border-white dark:border-gray-800"
+                    className="object-cover rounded-lg shadow-xl border-4 border-background"
                   />
                 </div>
               </div>

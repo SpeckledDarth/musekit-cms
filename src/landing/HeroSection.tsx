@@ -78,7 +78,7 @@ export function HeroSection({
                   alt={headline}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="rounded-xl shadow-2xl object-cover"
+                  className="rounded-lg shadow-2xl object-cover"
                   priority
                 />
               </div>
@@ -142,7 +142,7 @@ export function HeroSection({
                   alt="Product preview"
                   fill
                   sizes="(max-width: 768px) 100vw, 896px"
-                  className="rounded-xl shadow-2xl object-cover"
+                  className="rounded-lg shadow-2xl object-cover"
                   priority
                 />
               </div>

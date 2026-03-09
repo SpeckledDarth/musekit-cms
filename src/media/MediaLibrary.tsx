@@ -355,7 +355,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                           e.stopPropagation();
                           setPreviewFile(file);
                         }}
-                        className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white"
+                        className="p-2 bg-background/90 text-foreground rounded-full hover:bg-background"
                         aria-label={`Preview ${file.name}`}
                         title="Preview"
                       >
@@ -366,7 +366,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                           e.stopPropagation();
                           handleCopyUrl(file);
                         }}
-                        className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white"
+                        className="p-2 bg-background/90 text-foreground rounded-full hover:bg-background"
                         aria-label={`Copy URL for ${file.name}`}
                         title="Copy URL"
                       >
@@ -381,7 +381,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                           e.stopPropagation();
                           setDeleteConfirmId(file.id);
                         }}
-                        className="p-2 bg-white/90 text-gray-900 rounded-full hover:bg-white"
+                        className="p-2 bg-background/90 text-foreground rounded-full hover:bg-background"
                         aria-label={`Delete ${file.name}`}
                         title="Delete"
                       >
@@ -461,7 +461,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
               <p className="text-white/60 text-xs">{formatFileSize(previewFile.size)}</p>
               <button
                 onClick={() => handleCopyUrl(previewFile)}
-                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-white/20 text-white text-xs rounded-md hover:bg-white/30"
+                className="mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 bg-foreground/20 text-foreground text-xs rounded-md hover:bg-foreground/30"
               >
                 {copiedId === previewFile.id ? (
                   <>

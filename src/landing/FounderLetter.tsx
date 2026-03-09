@@ -26,7 +26,7 @@ export function FounderLetter({
   return (
     <section className="py-20 px-4" style={{ backgroundColor }}>
       <div className="max-w-3xl mx-auto">
-        <div className="bg-card border border-border rounded-2xl p-8 md:p-12">
+        <div className="bg-card border border-border rounded-lg p-8 md:p-12">
           <div className="flex items-center gap-4 mb-8">
             {portrait && (
               <div className="relative w-16 h-16 flex-shrink-0">

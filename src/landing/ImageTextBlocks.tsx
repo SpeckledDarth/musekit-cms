@@ -43,7 +43,7 @@ export function ImageTextBlocks({
                   alt={block.imageAlt || block.title}
                   fill
                   sizes="(max-width: 768px) 100vw, 50vw"
-                  className="rounded-xl shadow-lg object-cover"
+                  className="rounded-lg shadow-lg object-cover"
                 />
               </div>
             </div>

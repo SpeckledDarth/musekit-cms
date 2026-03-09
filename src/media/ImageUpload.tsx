@@ -114,14 +114,14 @@ export function ImageUpload({ value, onChange, folder }: ImageUploadProps) {
               <button
                 type="button"
                 onClick={() => setPickerOpen(true)}
-                className="px-3 py-1.5 bg-white text-black text-xs font-medium rounded-md hover:bg-gray-100"
+                className="px-3 py-1.5 bg-background text-foreground text-xs font-medium rounded-md hover:bg-muted"
               >
                 Change
               </button>
               <button
                 type="button"
                 onClick={() => onChange("")}
-                className="p-1.5 bg-white text-red-600 rounded-md hover:bg-gray-100"
+                className="p-1.5 bg-background text-red-600 rounded-md hover:bg-muted"
                 aria-label="Remove image"
               >
                 <X className="w-4 h-4" />

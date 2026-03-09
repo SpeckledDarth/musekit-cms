@@ -35,7 +35,7 @@ const tagColors: Record<string, string> = {
   fix: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
 };
 
-const defaultBadge = "bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-300";
+const defaultBadge = "bg-muted text-muted-foreground";
 
 function getTagBadge(entry: ChangelogEntry): { label: string; className: string } {
   const category = (entry.category || "").toLowerCase();

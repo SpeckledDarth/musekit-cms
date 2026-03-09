@@ -370,12 +370,12 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
             aria-label={formPublished ? "Set to draft" : "Set to published"}
             className={cn(
               "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-              formPublished ? "bg-green-600" : "bg-gray-300 dark:bg-gray-600"
+              formPublished ? "bg-green-600" : "bg-muted"
             )}
           >
             <span
               className={cn(
-                "inline-block h-4 w-4 transform rounded-full bg-white transition-transform",
+                "inline-block h-4 w-4 transform rounded-full bg-background transition-transform",
                 formPublished ? "translate-x-6" : "translate-x-1"
               )}
             />
