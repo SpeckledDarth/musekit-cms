@@ -370,7 +370,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
             aria-label={formPublished ? "Set to draft" : "Set to published"}
             className={cn(
               "relative inline-flex h-6 w-11 items-center rounded-full transition-colors",
-              formPublished ? "bg-green-600" : "bg-muted"
+              formPublished ? "bg-success" : "bg-muted"
             )}
           >
             <span
@@ -382,13 +382,13 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           </button>
           <span className={cn(
             "text-xs font-medium",
-            formPublished ? "text-green-600" : "text-muted-foreground"
+            formPublished ? "text-success" : "text-muted-foreground"
           )}>
             {formPublished ? "Published" : "Draft"}
           </span>
         </div>
         {fieldErrors.title && (
-          <p className="text-sm text-red-500">{fieldErrors.title}</p>
+          <p className="text-sm text-danger">{fieldErrors.title}</p>
         )}
       </div>
     );
@@ -459,7 +459,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
           <span className="text-sm font-medium">{selected.size} selected</span>
           <button
             onClick={handleBulkDelete}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-danger text-danger-foreground rounded-md hover:bg-danger/90"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete Selected
@@ -571,8 +571,8 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                           pg.published
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                            ? "bg-success/10 text-success"
+                            : "bg-warning/10 text-warning"
                         )}
                       >
                         {pg.published ? "Published" : "Draft"}
@@ -584,7 +584,7 @@ export function CustomPageEditor({ userId }: CustomPageEditorProps) {
                     <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
                       <button
                         onClick={() => handleDelete(pg.id)}
-                        className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                        className="p-1.5 text-muted-foreground hover:text-danger rounded-md hover:bg-muted"
                         aria-label="Delete page"
                         title="Delete"
                       >

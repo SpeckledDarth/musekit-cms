@@ -83,7 +83,7 @@ export function AdminAuthGate({ children }: AdminAuthGateProps) {
             </div>
 
             {error && (
-              <div className="p-3 text-sm text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md">
+              <div className="p-3 text-sm text-danger bg-danger/10 border border-danger/30 rounded-md">
                 {error}
               </div>
             )}

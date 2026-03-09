@@ -197,12 +197,12 @@ export function MediaPicker({ open, onClose, onSelect }: MediaPickerProps) {
         </div>
 
         {uploadError && (
-          <div className="mx-6 mt-3 p-2 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-md flex items-start gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-            <span className="text-xs text-red-700 dark:text-red-300 whitespace-pre-line">{uploadError}</span>
+          <div className="mx-6 mt-3 p-2 bg-danger/10 border border-danger/20 rounded-md flex items-start gap-2">
+            <AlertCircle className="w-4 h-4 text-danger mt-0.5 flex-shrink-0" />
+            <span className="text-xs text-danger whitespace-pre-line">{uploadError}</span>
             <button
               onClick={() => setUploadError(null)}
-              className="ml-auto text-red-400 hover:text-red-600"
+              className="ml-auto text-danger/60 hover:text-danger"
               aria-label="Dismiss upload error"
             >
               <X className="w-3.5 h-3.5" />

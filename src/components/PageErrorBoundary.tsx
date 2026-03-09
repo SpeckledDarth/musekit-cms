@@ -55,7 +55,7 @@ export class PageErrorBoundary extends React.Component<
               An unexpected error occurred. Please try again.
             </p>
             {isDev && this.state.error && (
-              <pre className="bg-red-50 dark:bg-red-950/30 text-red-700 dark:text-red-400 p-4 rounded-lg text-xs text-left overflow-auto mb-6 whitespace-pre-wrap break-words border border-red-200 dark:border-red-800">
+              <pre className="bg-danger/10 text-danger p-4 rounded-lg text-xs text-left overflow-auto mb-6 whitespace-pre-wrap break-words border border-danger/30">
                 {this.state.error.message}
                 {this.state.error.stack && `\n\n${this.state.error.stack}`}
               </pre>

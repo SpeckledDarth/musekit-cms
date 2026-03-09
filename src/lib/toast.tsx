@@ -23,13 +23,13 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 const variantStyles: Record<ToastVariant, string> = {
   success: "bg-emerald-900 border-emerald-700 text-emerald-100",
-  error: "bg-red-900 border-red-700 text-red-100",
+  error: "bg-danger border-danger/70 text-danger-foreground",
   info: "bg-blue-900 border-blue-700 text-blue-100",
 };
 
 const variantIcons: Record<ToastVariant, React.ReactNode> = {
   success: <CheckCircle className="w-4 h-4 text-emerald-400 shrink-0" />,
-  error: <AlertCircle className="w-4 h-4 text-red-400 shrink-0" />,
+  error: <AlertCircle className="w-4 h-4 text-danger-foreground shrink-0" />,
   info: <Info className="w-4 h-4 text-blue-400 shrink-0" />,
 };
 

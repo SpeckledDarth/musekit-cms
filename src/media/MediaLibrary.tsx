@@ -277,12 +277,12 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
       </div>
 
       {uploadError && (
-        <div className="mb-4 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-red-600 dark:text-red-400 mt-0.5 flex-shrink-0" />
-          <div className="text-sm text-red-700 dark:text-red-300 whitespace-pre-line">{uploadError}</div>
+        <div className="mb-4 p-3 bg-danger/10 border border-danger/20 rounded-lg flex items-start gap-2">
+          <AlertCircle className="w-4 h-4 text-danger mt-0.5 flex-shrink-0" />
+          <div className="text-sm text-danger whitespace-pre-line">{uploadError}</div>
           <button
             onClick={() => setUploadError(null)}
-            className="ml-auto text-red-400 hover:text-red-600"
+            className="ml-auto text-danger/60 hover:text-danger"
             aria-label="Dismiss error"
           >
             <X className="w-4 h-4" />
@@ -371,7 +371,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                         title="Copy URL"
                       >
                         {copiedId === file.id ? (
-                          <Check className="w-4 h-4 text-green-600" />
+                          <Check className="w-4 h-4 text-success" />
                         ) : (
                           <Copy className="w-4 h-4" />
                         )}
@@ -426,7 +426,7 @@ export function MediaLibrary({ selectable = false, onSelect }: MediaLibraryProps
                   const file = files.find((f) => f.id === deleteConfirmId);
                   if (file) handleDelete(file);
                 }}
-                className="px-4 py-2 text-sm bg-red-600 text-white rounded-md hover:bg-red-700"
+                className="px-4 py-2 text-sm bg-danger text-danger-foreground rounded-md hover:bg-danger/90"
               >
                 Delete
               </button>

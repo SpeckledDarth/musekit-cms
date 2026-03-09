@@ -53,7 +53,7 @@ const categoryOptions: { label: string; value: CategoryFilter }[] = [
 
 const categoryBadgeColors: Record<string, string> = {
   release: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  update: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  update: "bg-success/10 text-success",
   feature: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   fix: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
 };
@@ -381,7 +381,7 @@ export function ChangelogAdmin() {
               placeholder="Entry title"
               className="w-full px-4 py-3 text-2xl font-bold bg-transparent border-b border-border focus:outline-none focus:border-primary"
             />
-            {fieldErrors.title && <p className="text-red-500 text-xs mt-1">{fieldErrors.title}</p>}
+            {fieldErrors.title && <p className="text-danger text-xs mt-1">{fieldErrors.title}</p>}
           </div>
 
           <div className="flex gap-4">
@@ -561,21 +561,21 @@ export function ChangelogAdmin() {
               <span className="text-sm font-medium">{selected.size} selected</span>
               <button
                 onClick={() => handleBulkPublish(true)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-green-600 text-white hover:bg-green-700"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-success text-success-foreground hover:bg-success/90"
               >
                 <Eye className="w-3.5 h-3.5" />
                 Publish
               </button>
               <button
                 onClick={() => handleBulkPublish(false)}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-yellow-600 text-white hover:bg-yellow-700"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-warning text-warning-foreground hover:bg-warning/90"
               >
                 <EyeOff className="w-3.5 h-3.5" />
                 Unpublish
               </button>
               <button
                 onClick={handleBulkDelete}
-                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-red-600 text-white hover:bg-red-700"
+                className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-md bg-danger text-danger-foreground hover:bg-danger/90"
               >
                 <Trash2 className="w-3.5 h-3.5" />
                 Delete
@@ -660,8 +660,8 @@ export function ChangelogAdmin() {
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                           entry.published
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                            ? "bg-success/10 text-success"
+                            : "bg-warning/10 text-warning"
                         )}
                       >
                         {entry.published ? "Published" : "Draft"}
@@ -696,7 +696,7 @@ export function ChangelogAdmin() {
                         </button>
                         <button
                           onClick={() => handleDelete(entry.id)}
-                          className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                          className="p-1.5 text-muted-foreground hover:text-danger rounded-md hover:bg-muted"
                           aria-label="Delete entry"
                           title="Delete"
                         >

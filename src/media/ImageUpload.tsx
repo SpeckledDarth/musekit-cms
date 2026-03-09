@@ -121,7 +121,7 @@ export function ImageUpload({ value, onChange, folder }: ImageUploadProps) {
               <button
                 type="button"
                 onClick={() => onChange("")}
-                className="p-1.5 bg-background text-red-600 rounded-md hover:bg-muted"
+                className="p-1.5 bg-background text-danger rounded-md hover:bg-muted"
                 aria-label="Remove image"
               >
                 <X className="w-4 h-4" />
@@ -174,7 +174,7 @@ export function ImageUpload({ value, onChange, folder }: ImageUploadProps) {
       </div>
 
       {error && (
-        <p className="mt-1.5 text-xs text-red-600 dark:text-red-400">{error}</p>
+        <p className="mt-1.5 text-xs text-danger">{error}</p>
       )}
 
       <MediaPicker

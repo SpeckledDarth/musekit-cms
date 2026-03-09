@@ -347,7 +347,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Breadcrumb items={[{ label: "Blog Admin", onClick: () => { if (confirmDiscard()) { setCreating(false); setIsDirty(false); setTitleError(""); } } }, { label: "New Post" }]} />
-        {titleError && <p className="text-red-500 text-sm mb-2">{titleError}</p>}
+        {titleError && <p className="text-danger text-sm mb-2">{titleError}</p>}
         <BlogEditor onSave={handleCreate} saving={saving} onTitleChange={() => { setIsDirty(true); setTitleError(""); }} onContentChange={() => setIsDirty(true)} />
       </div>
     );
@@ -357,7 +357,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
     return (
       <div className="max-w-4xl mx-auto px-4 py-8">
         <Breadcrumb items={[{ label: "Blog Admin", onClick: () => { if (confirmDiscard()) { setEditing(null); setIsDirty(false); setTitleError(""); } } }, { label: "Edit Post" }]} />
-        {titleError && <p className="text-red-500 text-sm mb-2">{titleError}</p>}
+        {titleError && <p className="text-danger text-sm mb-2">{titleError}</p>}
         <BlogEditor
           initialTitle={editing.title}
           initialContent={editing.content}
@@ -435,21 +435,21 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
           <span className="text-sm font-medium">{selected.size} selected</span>
           <button
             onClick={() => handleBulkTogglePublish(true)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-md hover:bg-green-700"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-success text-success-foreground rounded-md hover:bg-success/90"
           >
             <Eye className="w-3.5 h-3.5" />
             Publish
           </button>
           <button
             onClick={() => handleBulkTogglePublish(false)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-yellow-600 text-white rounded-md hover:bg-yellow-700"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-warning text-warning-foreground rounded-md hover:bg-warning/90"
           >
             <EyeOff className="w-3.5 h-3.5" />
             Unpublish
           </button>
           <button
             onClick={handleBulkDelete}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-danger text-danger-foreground rounded-md hover:bg-danger/90"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete
@@ -571,8 +571,8 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
                         className={cn(
                           "inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium",
                           post.published
-                            ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
-                            : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300"
+                            ? "bg-success/10 text-success"
+                            : "bg-warning/10 text-warning"
                         )}
                       >
                         {post.published ? "Published" : "Draft"}
@@ -605,7 +605,7 @@ export function BlogAdmin({ userId }: BlogAdminProps) {
                         </button>
                         <button
                           onClick={() => handleDelete(post.id)}
-                          className="p-1.5 text-muted-foreground hover:text-red-500 rounded-md hover:bg-muted"
+                          className="p-1.5 text-muted-foreground hover:text-danger rounded-md hover:bg-muted"
                           aria-label="Delete post"
                           title="Delete"
                         >

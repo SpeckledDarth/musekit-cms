@@ -56,7 +56,7 @@ export function FeedbackWidget() {
 
           {status === "success" ? (
             <div className="p-6 text-center">
-              <p className="text-green-600 dark:text-green-400 font-medium">Thank you for your feedback!</p>
+              <p className="text-success font-medium">Thank you for your feedback!</p>
             </div>
           ) : (
             <form onSubmit={handleSubmit} className="p-4 space-y-4">
@@ -106,7 +106,7 @@ export function FeedbackWidget() {
                 {status === "loading" ? "Sending..." : "Submit"}
               </button>
               {status === "error" && (
-                <p className="text-red-500 text-xs text-center">Failed to submit. Please try again.</p>
+                <p className="text-danger text-xs text-center">Failed to submit. Please try again.</p>
               )}
             </form>
           )}

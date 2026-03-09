@@ -84,13 +84,13 @@ export function DynamicPage({ slug, preview = false }: DynamicPageProps) {
   return (
     <div>
       {isUnpublished && showBanner && (
-        <div className="bg-yellow-50 dark:bg-yellow-950/30 border-b border-yellow-200 dark:border-yellow-800 px-4 py-3 flex items-center justify-between">
-          <p className="text-yellow-800 dark:text-yellow-300 text-sm font-medium">
+        <div className="bg-warning/10 border-b border-warning/30 px-4 py-3 flex items-center justify-between">
+          <p className="text-warning text-sm font-medium">
             Preview Mode — This page is not published
           </p>
           <button
             onClick={() => setShowBanner(false)}
-            className="text-yellow-600 dark:text-yellow-400 hover:text-yellow-800 dark:hover:text-yellow-200 text-sm font-medium"
+            className="text-warning hover:text-warning/80 text-sm font-medium"
           >
             Dismiss
           </button>

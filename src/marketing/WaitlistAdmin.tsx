@@ -231,7 +231,7 @@ export function WaitlistAdmin() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowAddForm(!showAddForm)}
-            className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-md font-medium hover:bg-green-700 transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2 bg-success text-success-foreground rounded-md font-medium hover:bg-success/90 transition-colors"
           >
             <Plus className="w-4 h-4" />
             Add Entry
@@ -293,7 +293,7 @@ export function WaitlistAdmin() {
               <X className="w-4 h-4" />
             </button>
           </div>
-          {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
+          {emailError && <p className="text-danger text-xs mt-1">{emailError}</p>}
         </div>
       )}
 
@@ -317,7 +317,7 @@ export function WaitlistAdmin() {
           <span className="text-sm font-medium">{selected.size} selected</span>
           <button
             onClick={handleBulkDelete}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-md hover:bg-red-700"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-danger text-danger-foreground rounded-md hover:bg-danger/90"
           >
             <Trash2 className="w-3.5 h-3.5" />
             Delete Selected
@@ -424,7 +424,7 @@ export function WaitlistAdmin() {
                         <div className="flex items-center gap-1">
                           <button
                             onClick={() => handleDeleteEntry(entry.id)}
-                            className="px-2 py-1 bg-red-600 text-white rounded text-xs font-medium hover:bg-red-700"
+                            className="px-2 py-1 bg-danger text-danger-foreground rounded text-xs font-medium hover:bg-danger/90"
                           >
                             Confirm
                           </button>
@@ -438,7 +438,7 @@ export function WaitlistAdmin() {
                       ) : (
                         <button
                           onClick={() => setDeleteConfirmId(entry.id)}
-                          className="p-1 text-muted-foreground hover:text-red-600 rounded transition-colors"
+                          className="p-1 text-muted-foreground hover:text-danger rounded transition-colors"
                           aria-label={`Delete ${entry.email}`}
                           title="Delete entry"
                         >

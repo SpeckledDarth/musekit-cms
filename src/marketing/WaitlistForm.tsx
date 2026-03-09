@@ -52,7 +52,7 @@ export function WaitlistForm({
       <p className="text-muted-foreground mb-6">{description}</p>
 
       {status === "success" ? (
-        <div className="p-4 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-300 rounded-lg">
+        <div className="p-4 bg-success/10 text-success rounded-lg">
           {successMessage}
         </div>
       ) : (
@@ -78,7 +78,7 @@ export function WaitlistForm({
         </form>
       )}
       {status === "error" && (
-        <p className="text-red-500 text-sm mt-2">{errorMsg}</p>
+        <p className="text-danger text-sm mt-2">{errorMsg}</p>
       )}
     </div>
   );

@@ -40,6 +40,22 @@ const config: Config = {
           DEFAULT: "hsl(var(--popover))",
           foreground: "hsl(var(--popover-foreground))",
         },
+        success: {
+          DEFAULT: "hsl(var(--success, 142 76% 36%))",
+          foreground: "hsl(var(--success-foreground, 0 0% 100%))",
+        },
+        warning: {
+          DEFAULT: "hsl(var(--warning, 38 92% 50%))",
+          foreground: "hsl(var(--warning-foreground, 0 0% 0%))",
+        },
+        danger: {
+          DEFAULT: "hsl(var(--danger, 0 84% 60%))",
+          foreground: "hsl(var(--danger-foreground, 0 0% 100%))",
+        },
+        info: {
+          DEFAULT: "hsl(var(--info, 221 83% 53%))",
+          foreground: "hsl(var(--info-foreground, 0 0% 100%))",
+        },
         ring: "hsl(var(--ring))",
         input: "hsl(var(--input))",
         chart: {
